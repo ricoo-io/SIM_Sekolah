@@ -1,8 +1,3 @@
-/**
- * API Service Layer - Laravel Backend Integration
- * 
- * This file contains all API calls to the Laravel backend.
- */
 
 import apiClient from './axios';
 import { TOKEN_KEY } from './config';
@@ -15,7 +10,6 @@ export const authApi = {
       const response = await apiClient.post('/login', { nip, password });
       const { user, token } = response.data;
       
-      // Store token in localStorage
       localStorage.setItem(TOKEN_KEY, token);
       
       return { success: true, user };

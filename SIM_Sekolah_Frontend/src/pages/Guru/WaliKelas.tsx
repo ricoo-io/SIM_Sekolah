@@ -85,7 +85,6 @@ const WaliKelas: React.FC = () => {
     loadData();
   }, [kelasWali, semester]);
 
-  // Calculate stats
   const getSiswaAverage = (siswaId: number) => {
     const nilaiValid = penilaian
       .filter(p => p.id_siswa === siswaId)

@@ -26,11 +26,10 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
-            
-            {/* Protected routes */}
+
             <Route element={<DashboardLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />
-                            <Route path="/nilai" element={<NilaiPage />} />
+              <Route path="/nilai" element={<NilaiPage />} />
               <Route path="/wali-kelas" element={<WaliKelas />} />
             </Route>
             
