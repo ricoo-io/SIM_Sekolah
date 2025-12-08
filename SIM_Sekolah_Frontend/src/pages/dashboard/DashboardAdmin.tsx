@@ -12,6 +12,7 @@ import {
   ArrowRight,
   TrendingUp,
 } from 'lucide-react';
+import { siswaApi, usersApi, mapelApi, kelasApi, penilaianApi } from '@/lib/api';
 import { Siswa, User, MataPelajaran, Kelas, Penilaian } from '@/lib/types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -27,8 +28,78 @@ export const DashboardAdmin: React.FC = () => {
   const [chartData, setChartData] = useState<{name: string; nilai: number}[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  if (isLoading) {
+  useEffect(() => {
+      const loadData = async () => {
+        try {
+          const [siswaList, usersList, mapelList, kelasList, penilaianList] = await Promise.all([
+            siswaApi.getAll(),
+            usersApi.getAll(),
+            mapelApi.getAll(),
+            kelasApi.getAll(),
+            penilaianApi.getAll(),
+          ]);
+  
+          setStats({
+            siswa: siswaList.length,
+            guru: usersList.filter(u => u.role === 'guru').length,
+            mapel: mapelList.length,
+            kelas: kelasList.length,
+          });
+  
+          const incomplete: {siswa: Siswa; mapel: string; missing: string}[] = [];
+          siswaList.forEach(siswa => {
+            mapelList.forEach(mapel => {
+              const nilai = penilaianList.find(p => p.id_siswa === siswa.id && p.id_mapel === mapel.id);
+              if (!nilai) {
+                incomplete.push({ siswa, mapel: mapel.mata_pelajaran, missing: 'Semua nilai' });
+              } else if (nilai.nilai_Akhir === null) {
+                const missing: string[] = [];
+                if (nilai.nilai_harian_1 === null) missing.push('NH1');
+                if (nilai.nilai_harian_2 === null) missing.push('NH2');
+                if (nilai.nilai_harian_3 === null) missing.push('NH3');
+                if (nilai.nilai_UTS === null) missing.push('UTS');
+                if (nilai.nilai_harian_4 === null) missing.push('NH4');
+                if (nilai.nilai_harian_5 === null) missing.push('NH5');
+                if (nilai.nilai_harian_6 === null) missing.push('NH6');
+                if (nilai.nilai_UAS === null) missing.push('UAS');
+                if (missing.length > 0) {
+                  incomplete.push({ siswa, mapel: mapel.mata_pelajaran, missing: missing.join(', ') });
+                }
+              }
+            });
+          });
+          setIncompleteGrades(incomplete.slice(0, 10));
+  
+          const avgByMapel = mapelList.map(mapel => {
+            const nilaiMapel = penilaianList.filter(p => p.id_mapel === mapel.id && p.nilai_Akhir !== null);
+            const avg = nilaiMapel.length > 0 
+              ? nilaiMapel.reduce((sum, p) => sum + (p.nilai_Akhir || 0), 0) / nilaiMapel.length 
+              : 0;
+            return {
+              name: mapel.mata_pelajaran.length > 10 
+                ? mapel.mata_pelajaran.substring(0, 10) + '...' 
+                : mapel.mata_pelajaran,
+              nilai: Math.round(avg),
+            };
+          }).filter(d => d.nilai > 0);
+          setChartData(avgByMapel);
+  
+        } catch (error) {
+          console.error('Error loading dashboard data:', error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+  
+      loadData();
+    }, []);
 
+  if (isLoading) {
+    return(
+      <div className="flex items-center justify-center h-64">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
   }
 
   return (

@@ -6,11 +6,15 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 
-// Pages
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
-import NilaiPage from "./pages/Guru/Nilai";
+import Siswa from "./pages/Admin/Siswa";
+import Guru from "./pages/Admin/Guru";
+import Kelas from "./pages/Admin/Kelas";
+import Mapel from "./pages/Admin/Mapel";
+import AssignGuru from "./pages/Admin/AssignGuru";
+import Nilai from "./pages/Guru/Nilai";
 import WaliKelas from "./pages/Guru/WaliKelas";
 import NotFound from "./pages/NotFound";
 
@@ -29,7 +33,12 @@ const App = () => (
 
             <Route element={<DashboardLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/nilai" element={<NilaiPage />} />
+              <Route path="/siswa" element={<Siswa />} />
+              <Route path="/guru" element={<Guru />} />
+              <Route path="/kelas" element={<Kelas />} />
+              <Route path="/mapel" element={<Mapel />} />
+              <Route path="/assign-guru" element={<AssignGuru />} />
+              <Route path="/nilai" element={<Nilai />} />
               <Route path="/wali-kelas" element={<WaliKelas />} />
             </Route>
             

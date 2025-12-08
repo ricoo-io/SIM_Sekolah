@@ -158,6 +158,28 @@ export const mapelApi = {
     return response.data;
   },
   
+  create: async (mapel: Omit<MataPelajaran, 'id'>): Promise<MataPelajaran> => {
+    const response = await apiClient.post('/mapel', mapel);
+    return response.data;
+  },
+  
+  update: async (id: number, data: Partial<MataPelajaran>): Promise<MataPelajaran | null> => {
+    try {
+      const response = await apiClient.put(`/mapel/${id}`, data);
+      return response.data;
+    } catch (error) {
+      return null;
+    }
+  },
+  
+  delete: async (id: number): Promise<boolean> => {
+    try {
+      await apiClient.delete(`/mapel/${id}`);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  },
   
 };
 
@@ -171,6 +193,20 @@ export const guruMapelApi = {
   getByGuru: async (guruId: number): Promise<GuruMataPelajaran[]> => {
     const response = await apiClient.get(`/guru-mapel?guru=${guruId}`);
     return response.data;
+  },
+
+  create: async (data: Omit<GuruMataPelajaran, 'id'>): Promise<GuruMataPelajaran> => {
+    const response = await apiClient.post('/guru-mapel', data);
+    return response.data;
+  },
+  
+  delete: async (id: number): Promise<boolean> => {
+    try {
+      await apiClient.delete(`/guru-mapel/${id}`);
+      return true;
+    } catch (error) {
+      return false;
+    }
   },
 };
 

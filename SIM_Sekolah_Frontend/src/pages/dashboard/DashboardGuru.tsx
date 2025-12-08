@@ -10,6 +10,7 @@ import {
   FileText,
   TrendingUp,
 } from 'lucide-react';
+import { guruMapelApi, siswaApi, penilaianApi, kelasApi } from '@/lib/api';
 import { GuruMataPelajaran, Penilaian } from '@/lib/types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -25,9 +26,62 @@ export const DashboardGuru: React.FC = () => {
   const [chartData, setChartData] = useState<{name: string; nilai: number}[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  useEffect(() => {
+    const loadData = async () => {
+      if (!user) return;
+      
+      try {
+        const assignments = await guruMapelApi.getByGuru(user.id);
+        setGuruMapel(assignments);
+
+        const uniqueKelas = [...new Set(assignments.map(a => a.id_kelas))];
+        const uniqueMapel = [...new Set(assignments.map(a => a.id_mapel))];
+
+        // Count total students in taught classes
+        let totalSiswa = 0;
+        for (const kelasId of uniqueKelas) {
+          const siswaKelas = await siswaApi.getByKelas(kelasId);
+          totalSiswa += siswaKelas.length;
+        }
+
+        setStats({
+          kelasDiajar: uniqueKelas.length,
+          mapelDiajar: uniqueMapel.length,
+          totalSiswa,
+        });
+
+        const penilaianList = await penilaianApi.getAll();
+        const chartByKelas = uniqueKelas.map(kelasId => {
+          const assignment = assignments.find(a => a.id_kelas === kelasId);
+          const nilaiKelas = penilaianList.filter(
+            p => p.id_guru === user.id && p.siswa?.id_kelas === kelasId && p.nilai_Akhir !== null
+          );
+          const avg = nilaiKelas.length > 0
+            ? nilaiKelas.reduce((sum, p) => sum + (p.nilai_Akhir || 0), 0) / nilaiKelas.length
+            : 0;
+          return {
+            name: assignment?.kelas?.nama_kelas || `Kelas ${kelasId}`,
+            nilai: Math.round(avg),
+          };
+        }).filter(d => d.nilai > 0);
+        setChartData(chartByKelas);
+
+      } catch (error) {
+        console.error('Error loading guru dashboard:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, [user]);
 
   if (isLoading) {
-   
+   return (
+      <div className="flex items-center justify-center h-64">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
   }
 
   return (
