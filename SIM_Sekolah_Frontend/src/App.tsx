@@ -6,9 +6,12 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 
+// Pages
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
+import NilaiPage from "./pages/Guru/Nilai";
+import WaliKelas from "./pages/Guru/WaliKelas";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,9 +26,12 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
-          
+            
+            {/* Protected routes */}
             <Route element={<DashboardLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />
+                            <Route path="/nilai" element={<NilaiPage />} />
+              <Route path="/wali-kelas" element={<WaliKelas />} />
             </Route>
             
             <Route path="*" element={<NotFound />} />

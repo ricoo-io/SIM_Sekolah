@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, Kelas, AuthState } from '@/lib/types';
-import { authApi } from '@/lib/api';
+import { authApi, kelasApi } from '@/lib/api';
 import { useNavigate } from 'react-router-dom';
 
 interface AuthContextType extends AuthState {
@@ -19,17 +19,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const loadUser = async () => {
       try {
-      
+        // Only fetch user if token exists
         const token = localStorage.getItem('auth_token');
         if (token) {
           const currentUser = await authApi.fetchCurrentUser();
           if (currentUser) {
             setUser(currentUser);
+            if (currentUser.wali_kelas) {
+              const kelasList = await kelasApi.getAll();
+              const waliKelas = kelasList.find(k => k.id_guru === currentUser.id);
+              setKelasWali(waliKelas || null);
+            }
           }
         }
       } catch (error) {
         console.error('Error loading user:', error);
-
+        // Clear invalid token
         localStorage.removeItem('auth_token');
       } finally {
         setIsLoading(false);
@@ -42,6 +47,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const result = await authApi.login(nip, password);
     if (result.success && result.user) {
       setUser(result.user);
+      if (result.user.wali_kelas) {
+        const kelasList = await kelasApi.getAll();
+        const waliKelas = kelasList.find(k => k.id_guru === result.user!.id);
+        setKelasWali(waliKelas || null);
+      }
       return { success: true };
     }
     return { success: false, error: result.error };
