@@ -50,7 +50,7 @@ export const authApi = {
 
 // API User
 export const usersApi = {
-  getAll: async (): Promise<User[]> => {
+  getAll: async (): Promise<User[]> =>  {
     const response = await apiClient.get('/users');
     return response.data;
   },
@@ -180,7 +180,6 @@ export const mapelApi = {
       return false;
     }
   },
-  
 };
 
 // GURU MATA PELAJARAN API
@@ -194,7 +193,7 @@ export const guruMapelApi = {
     const response = await apiClient.get(`/guru-mapel?guru=${guruId}`);
     return response.data;
   },
-
+  
   create: async (data: Omit<GuruMataPelajaran, 'id'>): Promise<GuruMataPelajaran> => {
     const response = await apiClient.post('/guru-mapel', data);
     return response.data;

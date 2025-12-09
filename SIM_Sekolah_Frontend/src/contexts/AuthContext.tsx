@@ -19,7 +19,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const loadUser = async () => {
       try {
-        // Only fetch user if token exists
         const token = localStorage.getItem('auth_token');
         if (token) {
           const currentUser = await authApi.fetchCurrentUser();
@@ -34,7 +33,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
       } catch (error) {
         console.error('Error loading user:', error);
-        // Clear invalid token
         localStorage.removeItem('auth_token');
       } finally {
         setIsLoading(false);

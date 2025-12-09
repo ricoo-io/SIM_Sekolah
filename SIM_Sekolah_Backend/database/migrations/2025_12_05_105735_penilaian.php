@@ -6,9 +6,6 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('penilaian', function (Blueprint $table) {
@@ -29,14 +26,10 @@ return new class extends Migration
             $table->timestamp('update_terakhir')->nullable();
             $table->timestamps();
             
-            // Ensure unique grade per student per subject per semester
             $table->unique(['id_siswa', 'id_mapel', 'semester']);
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('penilaian');

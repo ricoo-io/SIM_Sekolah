@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Firebase\JWT\JWT;
 
 class AuthController extends Controller
 {
@@ -26,7 +27,14 @@ class AuthController extends Controller
             ]);
         }
 
-        $token = $user->createToken('auth-token')->plainTextToken;
+        // Create JWT token
+        $payload = [
+            'sub' => $user->id,
+            'iat' => time(),
+            'exp' => time() + (60 * 60 * 24 * 7) // 7 days
+        ];
+
+        $token = JWT::encode($payload, env('JWT_SECRET'), 'HS256');
 
         return response()->json([
             'user' => $user,
@@ -37,8 +45,6 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
-
         return response()->json([
             'message' => 'Logged out successfully',
         ]);
