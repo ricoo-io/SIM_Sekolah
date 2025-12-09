@@ -23,6 +23,8 @@ import { kelasApi, usersApi } from '@/lib/api';
 import { Kelas, User, Tingkat } from '@/lib/types';
 import { toast } from 'sonner';
 
+const NO_WALI = 'none';
+
 const KelasData: React.FC = () => {
   const [kelas, setKelas] = useState<Kelas[]>([]);
   const [guru, setGuru] = useState<User[]>([]);
@@ -32,7 +34,7 @@ const KelasData: React.FC = () => {
   const [formData, setFormData] = useState({
     nama_kelas: '',
     tingkat: '7' as Tingkat,
-    id_guru: '',
+    id_guru: NO_WALI,
   });
 
   const loadData = async () => {
@@ -60,7 +62,7 @@ const KelasData: React.FC = () => {
       const data = {
         nama_kelas: formData.nama_kelas,
         tingkat: formData.tingkat,
-        id_guru: formData.id_guru ? parseInt(formData.id_guru) : null,
+        id_guru: formData.id_guru === NO_WALI ? null : parseInt(formData.id_guru, 10),
       };
       
       if (editingKelas) {
@@ -83,7 +85,7 @@ const KelasData: React.FC = () => {
     setFormData({
       nama_kelas: item.nama_kelas,
       tingkat: item.tingkat,
-      id_guru: item.id_guru?.toString() || '',
+      id_guru: item.id_guru ? item.id_guru.toString() : NO_WALI,
     });
     setIsDialogOpen(true);
   };
@@ -101,7 +103,7 @@ const KelasData: React.FC = () => {
     setFormData({
       nama_kelas: '',
       tingkat: '7',
-      id_guru: '',
+      id_guru: NO_WALI,
     });
   };
 
@@ -192,7 +194,7 @@ const KelasData: React.FC = () => {
                   <SelectValue placeholder="Pilih wali kelas" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Tidak ada</SelectItem>
+                  <SelectItem value={NO_WALI}>Belum ditentukan</SelectItem>
                   {guru.map((g) => (
                     <SelectItem key={g.id} value={g.id.toString()}>{g.nama}</SelectItem>
                   ))}

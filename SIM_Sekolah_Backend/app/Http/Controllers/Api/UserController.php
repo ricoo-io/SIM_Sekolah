@@ -17,7 +17,11 @@ class UserController extends Controller
 
     public function guru()
     {
-        $guru = User::where('role', 'guru')->get()->makeHidden(['password']);
+        $guru = User::where('role', 'guru')
+            ->where('wali_kelas', true)
+            ->get()
+            ->makeHidden(['password']);
+
         return response()->json($guru);
     }
 
