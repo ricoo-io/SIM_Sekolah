@@ -21,6 +21,7 @@ export interface Kelas {
   nama_kelas: string;
   tingkat: Tingkat;
   wali_kelas?: User;
+  jumlah_siswa?: number;
   created_at?: string;
   updated_at?: string;
 }

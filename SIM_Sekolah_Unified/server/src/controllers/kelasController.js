@@ -1,8 +1,14 @@
 import { Kelas, User } from '../models/index.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
+import sequelize from '../config/database.js';
 
 export const getAllKelas = asyncHandler(async (req, res) => {
   const kelas = await Kelas.findAll({
+    attributes: {
+      include: [
+        [sequelize.literal('(SELECT COUNT(*) FROM siswa WHERE siswa.id_kelas = Kelas.id)'), 'jumlah_siswa']
+      ]
+    },
     include: [{
       model: User,
       as: 'wali_kelas',

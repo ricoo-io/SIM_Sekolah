@@ -164,6 +164,15 @@ const KelasData: React.FC = () => {
       render: (item: Kelas) => item.wali_kelas?.nama || <span className="text-muted-foreground">Belum ada</span>,
     },
     {
+      key: 'jumlah_siswa',
+      header: 'Jumlah Siswa',
+      render: (item: Kelas) => (
+        <Badge variant="secondary">
+          {item.jumlah_siswa || 0} Siswa
+        </Badge>
+      ),
+    },
+    {
       key: 'actions',
       header: 'Aksi',
       render: (item: Kelas) => (
