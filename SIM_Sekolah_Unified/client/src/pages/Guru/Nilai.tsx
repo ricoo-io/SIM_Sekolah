@@ -19,7 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Save, Calculator } from 'lucide-react';
+import { Save } from 'lucide-react';
 import { guruMapelApi, siswaApi, penilaianApi, mapelApi } from '@/lib/api';
 import { GuruMataPelajaran, Siswa, Penilaian, MataPelajaran, Semester } from '@/lib/types';
 import { toast } from 'sonner';
@@ -73,7 +73,6 @@ const NilaiPage: React.FC = () => {
         const mapel = mapelList.find(m => m.id === assignment.id_mapel);
         setMapelKkm(mapel?.kkm || 75);
 
-        
         const penilaianMap: Record<number, Penilaian> = {};
         siswaList.forEach(s => {
           const existing = allPenilaian.find(
@@ -109,7 +108,14 @@ const NilaiPage: React.FC = () => {
   }, [selectedAssignment, semester, assignments, user]);
 
   const handleNilaiChange = (siswaId: number, field: keyof Penilaian, value: string) => {
-    const numValue = value === '' ? null : Math.min(100, Math.max(0, parseInt(value) || 0));
+    let numValue: number | null = null;
+    if (value !== '') {
+      const parsed = parseFloat(value);
+      if (!isNaN(parsed)) {
+        const rounded = Math.round(parsed * 100) / 100;
+        numValue = Math.min(100, Math.max(0, rounded));
+      }
+    }
     setPenilaian(prev => ({
       ...prev,
       [siswaId]: {
@@ -120,7 +126,6 @@ const NilaiPage: React.FC = () => {
   };
 
   const calculateNilaiAkhir = (p: Penilaian): number | null => {
-   
     const nhValues = [
       p.nilai_harian_1,
       p.nilai_harian_2,
@@ -130,7 +135,6 @@ const NilaiPage: React.FC = () => {
       p.nilai_harian_6,
     ];
 
-
     const nhWithZeros = nhValues.map(n => Number(n ?? 0));
     
     const avgNh = nhWithZeros.reduce((sum, n) => sum + n, 0) / 6;
@@ -139,30 +143,23 @@ const NilaiPage: React.FC = () => {
     const uas = Number(p.nilai_UAS ?? 0);
 
     const nilaiAkhir = avgNh * 0.4 + uts * 0.3 + uas * 0.3;
-    return Math.round(nilaiAkhir);
-  };
-
-
-  const calculateAll = () => {
-    setPenilaian(prev => {
-      const updated = { ...prev };
-      Object.keys(updated).forEach(key => {
-        const siswaId = parseInt(key);
-        updated[siswaId] = {
-          ...updated[siswaId],
-          nilai_Akhir: calculateNilaiAkhir(updated[siswaId]),
-        };
-      });
-      return updated;
-    });
-    toast.success('Nilai akhir berhasil dihitung');
+    return Math.round(nilaiAkhir * 10) / 10;
   };
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      for (const siswaId of Object.keys(penilaian)) {
-        const p = penilaian[parseInt(siswaId)];
+      const updatedPenilaian = { ...penilaian };
+      Object.keys(updatedPenilaian).forEach(key => {
+        const siswaId = parseInt(key);
+        updatedPenilaian[siswaId] = {
+          ...updatedPenilaian[siswaId],
+          nilai_Akhir: calculateNilaiAkhir(updatedPenilaian[siswaId]),
+        };
+      });
+
+      for (const siswaId of Object.keys(updatedPenilaian)) {
+        const p = updatedPenilaian[parseInt(siswaId)];
         await penilaianApi.upsert({
           id_siswa: p.id_siswa,
           id_mapel: p.id_mapel,
@@ -179,6 +176,8 @@ const NilaiPage: React.FC = () => {
           nilai_Akhir: p.nilai_Akhir,
         });
       }
+      
+      setPenilaian(updatedPenilaian);
       toast.success('Nilai berhasil disimpan');
     } catch (error) {
       toast.error('Gagal menyimpan nilai');
@@ -237,10 +236,6 @@ const NilaiPage: React.FC = () => {
             </Select>
           </div>
           <div className="flex items-end gap-2">
-            <Button variant="outline" onClick={calculateAll} disabled={!selectedAssignment}>
-              <Calculator className="w-4 h-4 mr-2" />
-              Hitung NA
-            </Button>
             <Button onClick={handleSave} disabled={!selectedAssignment || isSaving}>
               <Save className="w-4 h-4 mr-2" />
               {isSaving ? 'Menyimpan...' : 'Simpan'}
@@ -259,15 +254,15 @@ const NilaiPage: React.FC = () => {
               <TableHeader>
                 <TableRow className="bg-muted/30">
                   <TableHead className="whitespace-nowrap">Nama Siswa</TableHead>
-                  <TableHead className="text-center w-16">NH1</TableHead>
-                  <TableHead className="text-center w-16">NH2</TableHead>
-                  <TableHead className="text-center w-16">NH3</TableHead>
-                  <TableHead className="text-center w-16 bg-primary/10">UTS</TableHead>
-                  <TableHead className="text-center w-16">NH4</TableHead>
-                  <TableHead className="text-center w-16">NH5</TableHead>
-                  <TableHead className="text-center w-16">NH6</TableHead>
-                  <TableHead className="text-center w-16 bg-primary/10">UAS</TableHead>
-                  <TableHead className="text-center w-20 bg-accent/20">NA</TableHead>
+                  <TableHead className="text-center w-20">NH1</TableHead>
+                  <TableHead className="text-center w-20">NH2</TableHead>
+                  <TableHead className="text-center w-20">NH3</TableHead>
+                  <TableHead className="text-center w-20 bg-primary/10">UTS</TableHead>
+                  <TableHead className="text-center w-20">NH4</TableHead>
+                  <TableHead className="text-center w-20">NH5</TableHead>
+                  <TableHead className="text-center w-20">NH6</TableHead>
+                  <TableHead className="text-center w-20 bg-primary/10">UAS</TableHead>
+                  <TableHead className="text-center w-24 bg-accent/20">NA</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -280,14 +275,15 @@ const NilaiPage: React.FC = () => {
                           type="number"
                           min={0}
                           max={100}
-                          value={penilaian[s.id]?.[field] ?? ''}
+                          step="0.01"
+                          value={penilaian[s.id]?.[field] !== null && penilaian[s.id]?.[field] !== undefined ? penilaian[s.id]?.[field] : ''}
                           onChange={(e) => handleNilaiChange(s.id, field, e.target.value)}
-                          className="w-14 h-8 text-center text-sm p-1"
+                          className="w-20 h-8 text-center text-sm p-1"
                         />
                       </TableCell>
                     ))}
                     <TableCell className={`text-center font-bold bg-accent/10 ${getNilaiStatus(penilaian[s.id]?.nilai_Akhir)}`}>
-                      {penilaian[s.id]?.nilai_Akhir ?? '-'}
+                      {penilaian[s.id]?.nilai_Akhir !== null && penilaian[s.id]?.nilai_Akhir !== undefined ? penilaian[s.id].nilai_Akhir : '-'}
                     </TableCell>
                   </TableRow>
                 ))}

@@ -36,14 +36,14 @@ const AssignGuru: React.FC = () => {
 
   const loadData = async () => {
     try {
-      const [assignmentsList, guruList, mapelList, kelasList] = await Promise.all([
+      const [assignmentsList,  allUsers, mapelList, kelasList] = await Promise.all([
         guruMapelApi.getAll(),
         usersApi.getAll(),
         mapelApi.getAll(),
         kelasApi.getAll(),
       ]);
       setAssignments(assignmentsList);
-      setGuru(guruList);
+      setGuru(allUsers.filter(u => u.role === 'guru'));
       setMapel(mapelList);
       setKelas(kelasList);
     } catch (error) {
