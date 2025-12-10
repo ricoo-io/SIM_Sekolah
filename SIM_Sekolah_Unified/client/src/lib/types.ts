@@ -29,6 +29,7 @@ export interface Siswa {
   id: number;
   nis: string;
   nama: string;
+  jenis_kelamin: 'L' | 'P';
   alamat: string;
   ibu: string;
   ayah: string;

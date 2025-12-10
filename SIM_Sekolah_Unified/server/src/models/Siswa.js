@@ -16,6 +16,10 @@ const Siswa = sequelize.define('Siswa', {
     type: DataTypes.STRING,
     allowNull: false
   },
+  jenis_kelamin: {
+    type: DataTypes.ENUM('L', 'P'),
+    allowNull: false
+  },
   alamat: {
     type: DataTypes.TEXT,
     allowNull: false

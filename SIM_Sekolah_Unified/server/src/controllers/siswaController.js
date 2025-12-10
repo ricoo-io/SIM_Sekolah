@@ -19,11 +19,12 @@ export const getAllSiswa = asyncHandler(async (req, res) => {
 });
 
 export const addSiswa = asyncHandler(async (req, res) => {
-  const { nis, nama, alamat, ibu, ayah, wali, kontak_wali, id_kelas } = req.body;
+  const { nis, nama, jenis_kelamin, alamat, ibu, ayah, wali, kontak_wali, id_kelas } = req.body;
 
   const errors = {};
   if (!nis) errors.nis = ['NIS is required'];
   if (!nama) errors.nama = ['Nama is required'];
+  if (!jenis_kelamin) errors.jenis_kelamin = ['Jenis kelamin is required'];
   if (!alamat) errors.alamat = ['Alamat is required'];
   if (!ibu) errors.ibu = ['Nama ibu is required'];
   if (!ayah) errors.ayah = ['Nama ayah is required'];
@@ -47,7 +48,7 @@ export const addSiswa = asyncHandler(async (req, res) => {
   }
 
   const siswa = await Siswa.create({
-    nis, nama, alamat, ibu, ayah, wali, kontak_wali, id_kelas
+    nis, nama, jenis_kelamin, alamat, ibu, ayah, wali, kontak_wali, id_kelas
   });
 
   const siswaWithKelas = await Siswa.findByPk(siswa.id, {
@@ -82,7 +83,7 @@ export const updateSiswa = asyncHandler(async (req, res) => {
     return res.status(404).json({ message: 'Siswa not found' });
   }
 
-  const { nis, nama, alamat, ibu, ayah, wali, kontak_wali, id_kelas } = req.body;
+  const { nis, nama, jenis_kelamin, alamat, ibu, ayah, wali, kontak_wali, id_kelas } = req.body;
 
   if (nis && nis !== siswa.nis) {
     const existingSiswa = await Siswa.findOne({ where: { nis } });
@@ -96,6 +97,7 @@ export const updateSiswa = asyncHandler(async (req, res) => {
 
   if (nis) siswa.nis = nis;
   if (nama) siswa.nama = nama;
+  if (jenis_kelamin) siswa.jenis_kelamin = jenis_kelamin;
   if (alamat) siswa.alamat = alamat;
   if (ibu) siswa.ibu = ibu;
   if (ayah) siswa.ayah = ayah;

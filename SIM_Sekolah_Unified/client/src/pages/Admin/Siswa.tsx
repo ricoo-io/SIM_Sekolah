@@ -27,7 +27,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, FileText, User } from 'lucide-react';
+import { Trash2, FileText, User, Users } from 'lucide-react';
 import { siswaApi, kelasApi, penilaianApi, mapelApi } from '@/lib/api';
 import { Siswa, Kelas, Penilaian, MataPelajaran } from '@/lib/types';
 import { toast } from 'sonner';
@@ -48,6 +48,7 @@ const SiswaData: React.FC = () => {
   const [formData, setFormData] = useState({
     nis: '',
     nama: '',
+    jenis_kelamin: 'L',
     alamat: '',
     ibu: '',
     ayah: '',
@@ -85,12 +86,14 @@ const SiswaData: React.FC = () => {
       if (editingSiswa) {
         await siswaApi.update(editingSiswa.id, {
           ...formData,
+          jenis_kelamin: formData.jenis_kelamin as 'L' | 'P',
           id_kelas: parseInt(formData.id_kelas),
         });
         toast.success('Siswa berhasil diperbarui');
       } else {
         await siswaApi.create({
           ...formData,
+          jenis_kelamin: formData.jenis_kelamin as 'L' | 'P',
           id_kelas: parseInt(formData.id_kelas),
         });
         toast.success('Siswa berhasil ditambahkan');
@@ -115,6 +118,7 @@ const SiswaData: React.FC = () => {
       setFormData({
         nis: selectedSiswa.nis,
         nama: selectedSiswa.nama,
+        jenis_kelamin: selectedSiswa.jenis_kelamin,
         alamat: selectedSiswa.alamat,
         ibu: selectedSiswa.ibu,
         ayah: selectedSiswa.ayah,
@@ -193,6 +197,7 @@ const SiswaData: React.FC = () => {
     setFormData({
       nis: '',
       nama: '',
+      jenis_kelamin: 'L',
       alamat: '',
       ibu: '',
       ayah: '',
@@ -214,6 +219,21 @@ const SiswaData: React.FC = () => {
     {
       accessorKey: 'nama',
       header: 'Nama',
+    },
+    {
+      accessorKey: 'jenis_kelamin',
+      header: 'Jenis Kelamin',
+      cell: ({ row }) => {
+        const isL = row.original.jenis_kelamin === 'L';
+        return (
+          <Badge 
+            variant="outline" 
+            className={isL ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-pink-50 text-pink-700 border-pink-200"}
+          >
+            {isL ? 'Laki-laki' : 'Perempuan'}
+          </Badge>
+        );
+      },
     },
     {
       accessorKey: 'kelas.nama_kelas',
@@ -325,13 +345,27 @@ const SiswaData: React.FC = () => {
                 </Select>
               </div>
             </div>
-            <div className="space-y-2">
-              <Label>Nama Lengkap</Label>
-              <Input
-                value={formData.nama}
-                onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
-                required
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Nama Lengkap</Label>
+                <Input
+                  value={formData.nama}
+                  onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Jenis Kelamin</Label>
+                <Select value={formData.jenis_kelamin} onValueChange={(v) => setFormData({ ...formData, jenis_kelamin: v })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih Gender" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="L">Laki-laki</SelectItem>
+                    <SelectItem value="P">Perempuan</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Alamat</Label>
@@ -388,146 +422,189 @@ const SiswaData: React.FC = () => {
 
       {/* Detail Dialog */}
       <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Detail Siswa</DialogTitle>
+            <DialogTitle>Detail Data Siswa</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-muted-foreground">NIS</Label>
-                <p className="text-sm">{selectedSiswa?.nis}</p>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-muted-foreground">Kelas</Label>
-                <p className="text-sm">{selectedSiswa?.kelas?.nama_kelas || '-'}</p>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-muted-foreground">Nama Lengkap</Label>
-              <p className="text-sm">{selectedSiswa?.nama}</p>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-muted-foreground">Alamat</Label>
-              <p className="text-sm">{selectedSiswa?.alamat}</p>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-muted-foreground">Nama Ayah</Label>
-                <p className="text-sm">{selectedSiswa?.ayah}</p>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-muted-foreground">Nama Ibu</Label>
-                <p className="text-sm">{selectedSiswa?.ibu}</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-muted-foreground">Wali</Label>
-                <p className="text-sm">{selectedSiswa?.wali}</p>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-muted-foreground">Kontak Wali</Label>
-                <p className="text-sm">{selectedSiswa?.kontak_wali}</p>
+          <div className="grid gap-6">
+            {/* Informasi Pribadi */}
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2 uppercase tracking-wider">
+               <User className="w-4 h-4" /> Informasi Pribadi
+              </h3>
+              <div className="grid grid-cols-2 gap-4 p-4 border rounded-lg bg-muted/30">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">NIS</Label>
+                  <p className="font-medium">{selectedSiswa?.nis}</p>
+                </div>
+                <div className="space-y-1">
+                   <Label className="text-xs text-muted-foreground">Kelas</Label>
+                   <p className="font-medium">{selectedSiswa?.kelas?.nama_kelas || '-'}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Nama Lengkap</Label>
+                  <p className="font-medium">{selectedSiswa?.nama}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Jenis Kelamin</Label>
+                   <div className="flex items-center gap-2">
+                    {selectedSiswa?.jenis_kelamin === 'L' ? (
+                       <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Laki-laki</Badge>
+                    ) : (
+                       <Badge variant="outline" className="bg-pink-50 text-pink-700 border-pink-200">Perempuan</Badge>
+                    )}
+                   </div>
+                </div>
+                 <div className="col-span-2 space-y-1">
+                  <Label className="text-xs text-muted-foreground">Alamat</Label>
+                  <p className="font-medium">{selectedSiswa?.alamat}</p>
+                </div>
               </div>
             </div>
-            <div className="flex justify-end gap-2 pt-4 border-t">
-              <Button variant="outline" onClick={() => setIsDetailDialogOpen(false)}>
-                Close
-              </Button>
-              <Button onClick={handleEditFromDetail}>
-                Edit
-              </Button>
+
+            {/* Data Orang Tua */}
+            <div>
+               <h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2 uppercase tracking-wider">
+                <Users className="w-4 h-4" /> Data Orang Tua & Wali
+              </h3>
+              <div className="grid grid-cols-2 gap-4 p-4 border rounded-lg bg-muted/30">
+                 <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Nama Ayah</Label>
+                  <p className="font-medium">{selectedSiswa?.ayah}</p>
+                 </div>
+                 <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Nama Ibu</Label>
+                  <p className="font-medium">{selectedSiswa?.ibu}</p>
+                 </div>
+                 <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Wali</Label>
+                  <p className="font-medium">{selectedSiswa?.wali}</p>
+                 </div>
+                 <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Kontak Wali</Label>
+                  <p className="font-medium">{selectedSiswa?.kontak_wali}</p>
+                 </div>
+              </div>
             </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <Button variant="outline" onClick={() => setIsDetailDialogOpen(false)}>
+              Tutup
+            </Button>
+            <Button onClick={handleEditFromDetail}>
+              Edit Data
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
 
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Edit Siswa</DialogTitle>
+            <DialogTitle>Edit Data Siswa</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>NIS</Label>
-                <Input
-                  value={formData.nis}
-                  onChange={(e) => setFormData({ ...formData, nis: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Kelas</Label>
-                <Select value={formData.id_kelas} onValueChange={(v) => setFormData({ ...formData, id_kelas: v })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih kelas" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {kelas.map((k) => (
-                      <SelectItem key={k.id} value={k.id.toString()}>{k.nama_kelas}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            
+            {/* Section Pribadi */}
+            <div className="space-y-4">
+               <h3 className="text-sm font-medium text-muted-foreground border-b pb-2">Informasi Pribadi</h3>
+               <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>NIS</Label>
+                  <Input
+                    value={formData.nis}
+                    onChange={(e) => setFormData({ ...formData, nis: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Kelas</Label>
+                  <Select value={formData.id_kelas} onValueChange={(v) => setFormData({ ...formData, id_kelas: v })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih kelas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {kelas.map((k) => (
+                        <SelectItem key={k.id} value={k.id.toString()}>{k.nama_kelas}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Nama Lengkap</Label>
+                  <Input
+                    value={formData.nama}
+                    onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Jenis Kelamin</Label>
+                  <Select value={formData.jenis_kelamin} onValueChange={(v) => setFormData({ ...formData, jenis_kelamin: v })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih Gender" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="L">Laki-laki</SelectItem>
+                      <SelectItem value="P">Perempuan</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="col-span-2 space-y-2">
+                  <Label>Alamat</Label>
+                  <Input
+                    value={formData.alamat}
+                    onChange={(e) => setFormData({ ...formData, alamat: e.target.value })}
+                    required
+                  />
+                </div>
+               </div>
+            </div>
+
+            {/* Section Orang Tua */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-medium text-muted-foreground border-b pb-2">Data Orang Tua & Wali</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Nama Ayah</Label>
+                  <Input
+                    value={formData.ayah}
+                    onChange={(e) => setFormData({ ...formData, ayah: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Nama Ibu</Label>
+                  <Input
+                    value={formData.ibu}
+                    onChange={(e) => setFormData({ ...formData, ibu: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Wali</Label>
+                  <Input
+                    value={formData.wali}
+                    onChange={(e) => setFormData({ ...formData, wali: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Kontak Wali</Label>
+                  <Input
+                    value={formData.kontak_wali}
+                    onChange={(e) => setFormData({ ...formData, kontak_wali: e.target.value })}
+                    required
+                  />
+                </div>
               </div>
             </div>
-            <div className="space-y-2">
-              <Label>Nama Lengkap</Label>
-              <Input
-                value={formData.nama}
-                onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Alamat</Label>
-              <Input
-                value={formData.alamat}
-                onChange={(e) => setFormData({ ...formData, alamat: e.target.value })}
-                required
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Nama Ayah</Label>
-                <Input
-                  value={formData.ayah}
-                  onChange={(e) => setFormData({ ...formData, ayah: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Nama Ibu</Label>
-                <Input
-                  value={formData.ibu}
-                  onChange={(e) => setFormData({ ...formData, ibu: e.target.value })}
-                  required
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Wali</Label>
-                <Input
-                  value={formData.wali}
-                  onChange={(e) => setFormData({ ...formData, wali: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Kontak Wali</Label>
-                <Input
-                  value={formData.kontak_wali}
-                  onChange={(e) => setFormData({ ...formData, kontak_wali: e.target.value })}
-                  required
-                />
-              </div>
-            </div>
+
             <div className="flex justify-end gap-2 pt-4">
               <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>Batal</Button>
-              <Button type="submit">Simpan</Button>
+              <Button type="submit">Simpan Perubahan</Button>
             </div>
           </form>
         </DialogContent>
