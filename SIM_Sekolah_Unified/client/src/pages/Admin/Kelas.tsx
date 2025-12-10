@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { DataTable } from '@/components/shared/DataTable';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,18 @@ import { toast } from 'sonner';
 
 const NO_WALI = 'none';
 
+const normalizeName = (name: string) => name.trim().toLowerCase();
+const getTingkatFromName = (name: string) => {
+  const match = name.trim().match(/^(\d+)/);
+  return match ? match[1] : null;
+};
+const sortKelas = (items: Kelas[]) =>
+  [...items].sort((a, b) => {
+    const diff = Number(a.tingkat) - Number(b.tingkat);
+    if (diff !== 0) return diff;
+    return a.nama_kelas.localeCompare(b.nama_kelas, 'id');
+  });
+
 const KelasData: React.FC = () => {
   const [kelas, setKelas] = useState<Kelas[]>([]);
   const [guru, setGuru] = useState<User[]>([]);
@@ -37,13 +49,23 @@ const KelasData: React.FC = () => {
     id_guru: NO_WALI,
   });
 
+  const assignedGuruIds = useMemo(
+    () => new Set(kelas.filter(k => k.id_guru !== null).map(k => k.id_guru as number)),
+    [kelas]
+  );
+
+  const availableGuru = useMemo(
+    () => guru.filter(g => !assignedGuruIds.has(g.id) || editingKelas?.id_guru === g.id),
+    [guru, assignedGuruIds, editingKelas]
+  );
+
   const loadData = async () => {
     try {
       const [kelasList, guruList] = await Promise.all([
         kelasApi.getAll(),
         usersApi.getGuru(),
       ]);
-      setKelas(kelasList);
+      setKelas(sortKelas(kelasList));
       setGuru(guruList.filter(g => g.wali_kelas));
     } catch (error) {
       console.error('Error loading data:', error);
@@ -65,6 +87,26 @@ const KelasData: React.FC = () => {
         id_guru: formData.id_guru === NO_WALI ? null : parseInt(formData.id_guru, 10),
       };
       
+      const isDuplicate = kelas.some(
+        (k) =>
+          normalizeName(k.nama_kelas) === normalizeName(formData.nama_kelas) &&
+          (!editingKelas || k.id !== editingKelas.id)
+      );
+      if (isDuplicate) {
+        toast.error('Nama kelas sudah ada, gunakan nama lain');
+        return;
+      }
+
+      const tingkatFromName = getTingkatFromName(formData.nama_kelas);
+      if (!tingkatFromName) {
+        toast.error('Nama kelas harus diawali angka tingkat (misal 7A, 8B)');
+        return;
+      }
+      if (tingkatFromName !== formData.tingkat) {
+        toast.error('Angka pada nama kelas harus sama dengan pilihan tingkat');
+        return;
+      }
+
       if (editingKelas) {
         await kelasApi.update(editingKelas.id, data);
         toast.success('Kelas berhasil diperbarui');
@@ -195,7 +237,7 @@ const KelasData: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={NO_WALI}>Belum ditentukan</SelectItem>
-                  {guru.map((g) => (
+                  {availableGuru.map((g) => (
                     <SelectItem key={g.id} value={g.id.toString()}>{g.nama}</SelectItem>
                   ))}
                 </SelectContent>

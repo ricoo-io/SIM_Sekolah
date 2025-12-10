@@ -38,7 +38,7 @@ const AssignGuru: React.FC = () => {
     try {
       const [assignmentsList, guruList, mapelList, kelasList] = await Promise.all([
         guruMapelApi.getAll(),
-        usersApi.getGuru(),
+        usersApi.getAll(),
         mapelApi.getAll(),
         kelasApi.getAll(),
       ]);
