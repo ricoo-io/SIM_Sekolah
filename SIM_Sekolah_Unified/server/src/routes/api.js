@@ -11,71 +11,69 @@ import * as rapotController from '../controllers/rapotController.js';
 
 const router = express.Router();
 
-// Public routes
-router.post('/login', authController.login);
+router.post('/login', authController.loginUser);
 
-// Protected routes
 router.use(authMiddleware);
 
-// Auth routes
-router.post('/logout', authController.logout);
-router.get('/user', authController.getUser);
+// Route Auth
+router.post('/logout', authController.logoutUser);
+router.get('/user', authController.getCurrentUser);
 
-// User routes
-router.get('/users', userController.index);
-router.get('/users-guru', userController.guru);
-router.post('/users', userController.store);
-router.get('/users/:id', userController.show);
-router.put('/users/:id', userController.update);
-router.patch('/users/:id', userController.update);
-router.delete('/users/:id', userController.destroy);
+// Route User
+router.get('/users', userController.getAllUsers);
+router.get('/users-guru', userController.getAllTeachers);
+router.post('/users', userController.addUser);
+router.get('/users/:id', userController.getUserById);
+router.put('/users/:id', userController.updateUser);
+router.patch('/users/:id', userController.updateUser);
+router.delete('/users/:id', userController.deleteUser);
 
-// Kelas routes
-router.get('/kelas', kelasController.index);
-router.post('/kelas', kelasController.store);
-router.get('/kelas/:id', kelasController.show);
-router.put('/kelas/:id', kelasController.update);
-router.patch('/kelas/:id', kelasController.update);
-router.delete('/kelas/:id', kelasController.destroy);
+// Route Kelas
+router.get('/kelas', kelasController.getAllKelas);
+router.post('/kelas', kelasController.addKelas);
+router.get('/kelas/:id', kelasController.getKelasById);
+router.put('/kelas/:id', kelasController.updateKelas);
+router.patch('/kelas/:id', kelasController.updateKelas);
+router.delete('/kelas/:id', kelasController.deleteKelas);
 
-// Siswa routes
-router.get('/siswa', siswaController.index);
-router.post('/siswa', siswaController.store);
-router.get('/siswa/:id', siswaController.show);
-router.put('/siswa/:id', siswaController.update);
-router.patch('/siswa/:id', siswaController.update);
-router.delete('/siswa/:id', siswaController.destroy);
+// Route Siswa
+router.get('/siswa', siswaController.getAllSiswa);
+router.post('/siswa', siswaController.addSiswa);
+router.get('/siswa/:id', siswaController.getSiswaById);
+router.put('/siswa/:id', siswaController.updateSiswa);
+router.patch('/siswa/:id', siswaController.updateSiswa);
+router.delete('/siswa/:id', siswaController.deleteSiswa);
 
-// Mata Pelajaran routes
-router.get('/mapel', mataPelajaranController.index);
-router.post('/mapel', mataPelajaranController.store);
-router.get('/mapel/:id', mataPelajaranController.show);
-router.put('/mapel/:id', mataPelajaranController.update);
-router.patch('/mapel/:id', mataPelajaranController.update);
-router.delete('/mapel/:id', mataPelajaranController.destroy);
+// Route Mapel
+router.get('/mapel', mataPelajaranController.getAllMapel);
+router.post('/mapel', mataPelajaranController.addMapel);
+router.get('/mapel/:id', mataPelajaranController.getMapelById);
+router.put('/mapel/:id', mataPelajaranController.updateMapel);
+router.patch('/mapel/:id', mataPelajaranController.updateMapel);
+router.delete('/mapel/:id', mataPelajaranController.deleteMapel);
 
-// Guru Mata Pelajaran routes
-router.get('/guru-mapel', guruMataPelajaranController.index);
-router.post('/guru-mapel', guruMataPelajaranController.store);
-router.get('/guru-mapel/:id', guruMataPelajaranController.show);
-router.put('/guru-mapel/:id', guruMataPelajaranController.update);
-router.patch('/guru-mapel/:id', guruMataPelajaranController.update);
-router.delete('/guru-mapel/:id', guruMataPelajaranController.destroy);
+// Route Guru Mapel
+router.get('/guru-mapel', guruMataPelajaranController.getAllGuruMapel);
+router.post('/guru-mapel', guruMataPelajaranController.addGuruMapel);
+router.get('/guru-mapel/:id', guruMataPelajaranController.getGuruMapelById);
+router.put('/guru-mapel/:id', guruMataPelajaranController.updateGuruMapel);
+router.patch('/guru-mapel/:id', guruMataPelajaranController.updateGuruMapel);
+router.delete('/guru-mapel/:id', guruMataPelajaranController.deleteGuruMapel);
 
-// Penilaian routes
-router.get('/penilaian', penilaianController.index);
-router.post('/penilaian', penilaianController.store);
-router.get('/penilaian/:id', penilaianController.show);
-router.put('/penilaian/:id', penilaianController.update);
-router.patch('/penilaian/:id', penilaianController.update);
-router.delete('/penilaian/:id', penilaianController.destroy);
+// Route Penilaian
+router.get('/penilaian', penilaianController.getAllPenilaian);
+router.post('/penilaian', penilaianController.addPenilaian);
+router.get('/penilaian/:id', penilaianController.getPenilaianById);
+router.put('/penilaian/:id', penilaianController.updatePenilaian);
+router.patch('/penilaian/:id', penilaianController.updatePenilaian);
+router.delete('/penilaian/:id', penilaianController.deletePenilaian);
 
-// Rapot routes
-router.get('/rapot', rapotController.index);
-router.post('/rapot', rapotController.store);
-router.get('/rapot/:id', rapotController.show);
-router.put('/rapot/:id', rapotController.update);
-router.patch('/rapot/:id', rapotController.update);
-router.delete('/rapot/:id', rapotController.destroy);
+// Route Rapot
+router.get('/rapot', rapotController.getAllRapot);
+router.post('/rapot', rapotController.addRapot);
+router.get('/rapot/:id', rapotController.getRapotById);
+router.put('/rapot/:id', rapotController.updateRapot);
+router.patch('/rapot/:id', rapotController.updateRapot);
+router.delete('/rapot/:id', rapotController.deleteRapot);
 
 export default router;

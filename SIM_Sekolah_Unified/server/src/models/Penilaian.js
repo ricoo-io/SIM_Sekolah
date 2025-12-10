@@ -74,13 +74,10 @@ const Penilaian = sequelize.define('Penilaian', {
     type: DataTypes.DECIMAL(5, 2),
     allowNull: true
   },
-  update_terakhir: {
-    type: DataTypes.DATE,
-    allowNull: true
-  }
+
 }, {
   tableName: 'penilaian',
-  timestamps: true,
+  timestamps: false,
   createdAt: 'created_at',
   updatedAt: 'updated_at',
   indexes: [

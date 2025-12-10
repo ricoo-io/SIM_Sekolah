@@ -36,7 +36,7 @@ const GuruMataPelajaran = sequelize.define('GuruMataPelajaran', {
   }
 }, {
   tableName: 'guru_mata_pelajaran',
-  timestamps: true,
+  timestamps: false,
   createdAt: 'created_at',
   updatedAt: 'updated_at',
   indexes: [

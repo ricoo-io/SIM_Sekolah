@@ -26,7 +26,7 @@ const Kelas = sequelize.define('Kelas', {
   }
 }, {
   tableName: 'kelas',
-  timestamps: true,
+  timestamps: false,
   createdAt: 'created_at',
   updatedAt: 'updated_at'
 });

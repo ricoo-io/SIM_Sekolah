@@ -47,7 +47,7 @@ const Siswa = sequelize.define('Siswa', {
   }
 }, {
   tableName: 'siswa',
-  timestamps: true,
+  timestamps: false,
   createdAt: 'created_at',
   updatedAt: 'updated_at'
 });

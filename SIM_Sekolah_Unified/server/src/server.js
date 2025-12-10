@@ -24,6 +24,23 @@ app.get('/health', (req, res) => {
 
 app.use((err, req, res, next) => {
   console.error('Error:', err);
+
+  if (err.name === 'SequelizeValidationError' || err.name === 'SequelizeUniqueConstraintError') {
+    const errors = {};
+    if (err.errors) {
+      err.errors.forEach((e) => {
+        const field = e.path;
+        const message = e.message;
+        if (!errors[field]) errors[field] = [];
+        errors[field].push(message);
+      });
+    }
+    return res.status(422).json({
+      message: 'Validation error',
+      errors
+    });
+  }
+
   res.status(500).json({
     message: 'Internal server error',
     error: process.env.NODE_ENV === 'development' ? err.message : undefined
@@ -35,7 +52,7 @@ const startServer = async () => {
     await sequelize.authenticate();
 
     if (process.env.NODE_ENV === 'development') {
-      await sequelize.sync({ alter: false });
+      await sequelize.sync({ alter: true });
     }
 
     app.listen(PORT, () => {

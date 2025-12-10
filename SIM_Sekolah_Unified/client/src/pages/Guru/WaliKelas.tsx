@@ -301,7 +301,7 @@ const WaliKelas: React.FC = () => {
           variant="success"
         />
         <StatsCard title="Nilai Belum Lengkap" value={getStudentsWithIncomplete()} icon={AlertTriangle} variant="warning" />
-        <StatsCard title="Di Bawah KKM" value={getStudentsBelowKkm()} icon={AlertTriangle} variant="info" />
+        <StatsCard title="NA Tidak Tuntas KKM" value={getStudentsBelowKkm()} icon={AlertTriangle} variant="info" />
       </div>
 
       {/* Charts */}
@@ -335,7 +335,7 @@ const WaliKelas: React.FC = () => {
         </div>
 
         <div className="bg-card rounded-xl border p-5 shadow-card">
-          <h3 className="font-semibold text-foreground mb-4">Kelengkapan per Mapel</h3>
+          <h3 className="font-semibold text-foreground mb-4">Ketuntasan per Mapel</h3>
           <div className="space-y-3 max-h-[300px] overflow-y-auto">
             {mapel.map(m => {
               const nilaiMapel = penilaian.filter(p => p.id_mapel === m.id);
@@ -355,7 +355,7 @@ const WaliKelas: React.FC = () => {
                 return hasAllComponents && p.nilai_Akhir >= m.kkm;
               }).length;
 
-              const totalSiswaMapel = siswa.length; // semua siswa harusnya punya nilai mapel ini
+              const totalSiswaMapel = siswa.length; 
               const percentage = totalSiswaMapel > 0 ? Math.round((tuntas / totalSiswaMapel) * 100) : 0;
 
               return (
@@ -387,7 +387,7 @@ const WaliKelas: React.FC = () => {
               <TableHead>No</TableHead>
               <TableHead>NIS</TableHead>
               <TableHead>Nama</TableHead>
-              <TableHead className="text-center">Rata-rata</TableHead>
+              <TableHead className="text-center">Rata-rata NA</TableHead>
               <TableHead className="text-center">Absensi</TableHead>
               <TableHead className="text-center">Status</TableHead>
               <TableHead className="text-center">Nilai</TableHead>
@@ -421,21 +421,25 @@ const WaliKelas: React.FC = () => {
                       
                       const hasIncomplete = mapel.some(m => {
                         const nilai = nilaiSiswaAll.find(p => p.id_mapel === m.id);
+                        
+                        const isScoreFilled = (val: number | null | undefined) => val !== null && val !== undefined;
+
                         const nilaiAkhir = nilai?.nilai_Akhir;
                         const hasAllComponents =
-                          nilai?.nilai_harian_1 !== null &&
-                          nilai?.nilai_harian_2 !== null &&
-                          nilai?.nilai_harian_3 !== null &&
-                          nilai?.nilai_harian_4 !== null &&
-                          nilai?.nilai_harian_5 !== null &&
-                          nilai?.nilai_harian_6 !== null &&
-                          nilai?.nilai_UTS !== null &&
-                          nilai?.nilai_UAS !== null &&
-                          nilaiAkhir !== null &&
-                          nilaiAkhir !== undefined;
+                          isScoreFilled(nilai?.nilai_harian_1) &&
+                          isScoreFilled(nilai?.nilai_harian_2) &&
+                          isScoreFilled(nilai?.nilai_harian_3) &&
+                          isScoreFilled(nilai?.nilai_harian_4) &&
+                          isScoreFilled(nilai?.nilai_harian_5) &&
+                          isScoreFilled(nilai?.nilai_harian_6) &&
+                          isScoreFilled(nilai?.nilai_UTS) &&
+                          isScoreFilled(nilai?.nilai_UAS) &&
+                          isScoreFilled(nilaiAkhir);
+                          
                         return !hasAllComponents;
                       });
 
+                       
                        
                       if (hasIncomplete) {
                         return (
@@ -445,27 +449,9 @@ const WaliKelas: React.FC = () => {
                         );
                       }
 
-                      
-                      const hasRemedial = mapel.some(m => {
-                        const nilai = nilaiSiswaAll.find(p => p.id_mapel === m.id);
-                        return nilai?.nilai_Akhir !== null && 
-                          nilai?.nilai_Akhir !== undefined && 
-                          nilai.nilai_Akhir < m.kkm;
-                      });
-
-                      
-                      if (hasRemedial) {
-                        return (
-                          <Badge variant="destructive">
-                            Remedial
-                          </Badge>
-                        );
-                      }
-
-                       
                       return (
                         <Badge variant="outline" className="border-success text-success">
-                          Tuntas
+                          Lengkap
                         </Badge>
                       );
                     })()}
@@ -573,7 +559,7 @@ const WaliKelas: React.FC = () => {
                 <p className="font-semibold">{selectedSiswa?.nis}</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Rata-rata</p>
+                <p className="text-sm text-muted-foreground">Rata-rata Nilai Akhir</p>
                 <p className="font-semibold text-lg">{selectedSiswa ? getSiswaAverage(selectedSiswa.id) || '-' : '-'}</p>
               </div>
               <div>

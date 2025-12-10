@@ -45,7 +45,7 @@ const Rapot = sequelize.define('Rapot', {
   }
 }, {
   tableName: 'rapot',
-  timestamps: true,
+  timestamps: false,
   createdAt: 'created_at',
   updatedAt: 'updated_at',
   indexes: [

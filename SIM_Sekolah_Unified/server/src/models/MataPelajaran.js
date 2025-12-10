@@ -17,7 +17,7 @@ const MataPelajaran = sequelize.define('MataPelajaran', {
   }
 }, {
   tableName: 'mata_pelajaran',
-  timestamps: true,
+  timestamps: false,
   createdAt: 'created_at',
   updatedAt: 'updated_at'
 });

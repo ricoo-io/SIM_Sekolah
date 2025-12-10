@@ -30,13 +30,10 @@ const User = sequelize.define('User', {
     defaultValue: false,
     allowNull: false
   },
-  remember_token: {
-    type: DataTypes.STRING(100),
-    allowNull: true
-  }
+
 }, {
   tableName: 'users',
-  timestamps: true,
+  timestamps: false,
   createdAt: 'created_at',
   updatedAt: 'updated_at'
 });
