@@ -9,10 +9,8 @@ import {
   Users,
   ClipboardList,
   FileText,
-  ListChecks,
   AlertTriangle,
   TrendingUp,
-  ArrowRight,
 } from 'lucide-react';
 import { guruMapelApi, siswaApi, penilaianApi, mapelApi } from '@/lib/api';
 import { MataPelajaran, Penilaian } from '@/lib/types';
@@ -183,7 +181,6 @@ export const DashboardGuru: React.FC = () => {
               Belum ada data penilaian
             </div>
           )}
-
         </div>
 
         <div className="bg-card rounded-xl border p-5 shadow-card">
