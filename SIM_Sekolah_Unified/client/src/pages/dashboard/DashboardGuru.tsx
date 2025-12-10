@@ -3,69 +3,121 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { StatsCard } from '@/components/shared/StatsCard';
 import { Button } from '@/components/ui/button';
-import { 
-  BookOpen, 
+import { Progress } from '@/components/ui/progress';
+import {
+  BookOpen,
   Users,
   ClipboardList,
   FileText,
+  ListChecks,
+  AlertTriangle,
   TrendingUp,
+  ArrowRight,
 } from 'lucide-react';
-import { guruMapelApi, siswaApi, penilaianApi, kelasApi } from '@/lib/api';
-import { GuruMataPelajaran, Penilaian } from '@/lib/types';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { guruMapelApi, siswaApi, penilaianApi, mapelApi } from '@/lib/api';
+import { MataPelajaran, Penilaian } from '@/lib/types';
 
 export const DashboardGuru: React.FC = () => {
   const { user, kelasWali } = useAuth();
   const navigate = useNavigate();
-  const [guruMapel, setGuruMapel] = useState<GuruMataPelajaran[]>([]);
+
   const [stats, setStats] = useState({
     kelasDiajar: 0,
     mapelDiajar: 0,
     totalSiswa: 0,
   });
-  const [chartData, setChartData] = useState<{name: string; nilai: number}[]>([]);
+
+  const [progressList, setProgressList] = useState<
+    { id: number; label: string; percent: number; done: number; total: number }[]
+  >([]);
+
+  const [perhatianList, setPerhatianList] = useState<
+    { siswa: string; mapel: string; nilai: number; kkm: number; kelas?: string }[]
+  >([]);
+
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const loadData = async () => {
       if (!user) return;
-      
       try {
         const assignments = await guruMapelApi.getByGuru(user.id);
-        setGuruMapel(assignments);
 
         const uniqueKelas = [...new Set(assignments.map(a => a.id_kelas))];
         const uniqueMapel = [...new Set(assignments.map(a => a.id_mapel))];
 
-        // Count total students in taught classes
-        let totalSiswa = 0;
+        const kelasSiswaCount: Record<number, number> = {};
         for (const kelasId of uniqueKelas) {
           const siswaKelas = await siswaApi.getByKelas(kelasId);
-          totalSiswa += siswaKelas.length;
+          kelasSiswaCount[kelasId] = siswaKelas.length;
         }
 
         setStats({
           kelasDiajar: uniqueKelas.length,
           mapelDiajar: uniqueMapel.length,
-          totalSiswa,
+          totalSiswa: Object.values(kelasSiswaCount).reduce((a, b) => a + b, 0),
         });
 
-        const penilaianList = await penilaianApi.getAll();
-        const chartByKelas = uniqueKelas.map(kelasId => {
-          const assignment = assignments.find(a => a.id_kelas === kelasId);
-          const nilaiKelas = penilaianList.filter(
-            p => p.id_guru === user.id && p.siswa?.id_kelas === kelasId && p.nilai_Akhir !== null
-          );
-          const avg = nilaiKelas.length > 0
-            ? nilaiKelas.reduce((sum, p) => sum + (p.nilai_Akhir || 0), 0) / nilaiKelas.length
-            : 0;
-          return {
-            name: assignment?.kelas?.nama_kelas || `Kelas ${kelasId}`,
-            nilai: Math.round(avg),
-          };
-        }).filter(d => d.nilai > 0);
-        setChartData(chartByKelas);
+        const [penilaianList, mapelList] = await Promise.all([
+          penilaianApi.getAll(),
+          mapelApi.getAll(),
+        ]);
 
+        const mapelLookup: Record<number, MataPelajaran> = {};
+        mapelList.forEach(m => (mapelLookup[m.id] = m));
+
+        const isNilaiComplete = (p: Penilaian) => {
+          const harian = [
+            p.nilai_harian_1,
+            p.nilai_harian_2,
+            p.nilai_harian_3,
+            p.nilai_harian_4,
+            p.nilai_harian_5,
+            p.nilai_harian_6,
+          ];
+          const hasNH = harian.some(n => n != null);
+          const hasUTS = p.nilai_UTS != null;
+          const hasUAS = p.nilai_UAS != null;
+          return hasNH && hasUTS && hasUAS;
+        };
+
+        const progressData = assignments.map(a => {
+          const total = kelasSiswaCount[a.id_kelas] || 0;
+          const done = penilaianList.filter(
+            p =>
+              p.id_mapel === a.id_mapel &&
+              p.siswa?.id_kelas === a.id_kelas &&
+              isNilaiComplete(p),
+          ).length;
+          const percent = total ? Math.round((done / total) * 100) : 0;
+          return {
+            id: a.id,
+            label: `${a.mapel?.mata_pelajaran || 'Mapel'} ${a.kelas?.nama_kelas || ''}`.trim(),
+            percent: Math.min(percent, 100),
+            done,
+            total,
+          };
+        });
+        setProgressList(progressData);
+
+        if (kelasWali) {
+          const perhatian = penilaianList
+            .filter(p => p.siswa?.id_kelas === kelasWali.id && p.nilai_Akhir !== null)
+            .map(p => {
+              const kkm = p.mapel?.kkm ?? mapelLookup[p.id_mapel]?.kkm ?? 75;
+              return {
+                siswa: p.siswa?.nama || 'Siswa',
+                mapel: p.mapel?.mata_pelajaran || mapelLookup[p.id_mapel]?.mata_pelajaran || 'Mapel',
+                nilai: p.nilai_Akhir || 0,
+                kkm,
+                kelas: p.siswa?.kelas?.nama_kelas,
+              };
+            })
+            .filter(p => p.nilai < p.kkm)
+            .sort((a, b) => a.nilai - b.nilai)
+            .slice(0, 8);
+          setPerhatianList(perhatian);
+        }
       } catch (error) {
         console.error('Error loading guru dashboard:', error);
       } finally {
@@ -74,10 +126,10 @@ export const DashboardGuru: React.FC = () => {
     };
 
     loadData();
-  }, [user]);
+  }, [user, kelasWali]);
 
   if (isLoading) {
-   return (
+    return (
       <div className="flex items-center justify-center h-64">
         <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
@@ -94,96 +146,83 @@ export const DashboardGuru: React.FC = () => {
         </p>
       </div>
 
-      {/* Data Statistik */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatsCard
-          title="Kelas Diajar"
-          value={stats.kelasDiajar}
-          icon={Users}
-          variant="primary"
-        />
-        <StatsCard
-          title="Mata Pelajaran"
-          value={stats.mapelDiajar}
-          icon={BookOpen}
-          variant="success"
-        />
-        <StatsCard
-          title="Total Siswa"
-          value={stats.totalSiswa}
-          icon={Users}
-          variant="info"
-        />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatsCard title="Kelas Diajar" value={stats.kelasDiajar} icon={Users} variant="primary" />
+        <StatsCard title="Mapel Diajar" value={stats.mapelDiajar} icon={BookOpen} variant="success" />
+        <StatsCard title="Total Siswa" value={stats.totalSiswa} icon={Users} variant="info" />
+        <StatsCard title="Peran" value={user?.role || '-'} icon={ClipboardList} variant="warning" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Grafik Nilai */}
-        <div className="bg-card rounded-xl border p-5 shadow-card">
+        <div className="bg-card rounded-xl border p-5 shadow-card flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="font-semibold text-foreground">Rata-rata Nilai per Kelas</h3>
-              <p className="text-sm text-muted-foreground">Kelas yang Anda ajar</p>
+              <h3 className="font-semibold text-foreground">Status Pengisian Nilai</h3>
+              <p className="text-sm text-muted-foreground">Progress per kelas / mapel</p>
             </div>
             <TrendingUp className="w-5 h-5 text-muted-foreground" />
           </div>
-          {chartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis 
-                  dataKey="name" 
-                  tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
-                />
-                <YAxis 
-                  tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
-                  domain={[0, 100]}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--card))', 
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
-                  }}
-                />
-                <Bar dataKey="nilai" fill="hsl(var(--accent))" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+
+          {progressList.length > 0 ? (
+            <div className="space-y-4 max-h-72 overflow-y-auto pr-1 flex-grow">
+              {progressList.map(item => (
+                <div key={item.id} className="space-y-1">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium text-foreground">{item.label}</span>
+                    <span className="text-muted-foreground">{item.percent}%</span>
+                  </div>
+                  <Progress value={item.percent} />
+                  <p className="text-xs text-muted-foreground">
+                    {item.done} dari {item.total} siswa sudah lengkap (NH, UTS, UAS)
+                  </p>
+                </div>
+              ))}
+            </div>
           ) : (
-            <div className="h-64 flex items-center justify-center text-muted-foreground">
-              Belum ada data nilai
+            <div className="h-64 flex items-center justify-center text-muted-foreground flex-grow">
+              Belum ada data penilaian
             </div>
           )}
+
         </div>
 
-        {/* Jadwal Mengajar */}
         <div className="bg-card rounded-xl border p-5 shadow-card">
-          <h3 className="font-semibold text-foreground mb-4">Jadwal Mengajar</h3>
-          {guruMapel.length > 0 ? (
-            <div className="space-y-3 max-h-64 overflow-y-auto">
-              {guruMapel.map((gm) => (
-                <div key={gm.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="font-semibold text-foreground">Siswa Perlu Perhatian</h3>
+              <p className="text-sm text-muted-foreground">Nilai di bawah KKM</p>
+            </div>
+            <AlertTriangle className="w-5 h-5 text-muted-foreground" />
+          </div>
+
+          {perhatianList.length > 0 ? (
+            <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+              {perhatianList.map((p, idx) => (
+                <div key={`${p.siswa}-${idx}`} className="flex items-start justify-between rounded-lg border p-3">
                   <div>
-                    <p className="font-medium text-sm text-foreground">{gm.mapel?.mata_pelajaran}</p>
-                    <p className="text-xs text-muted-foreground">Kelas {gm.kelas?.nama_kelas}</p>
+                    <p className="font-semibold text-foreground">{p.siswa}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {p.mapel} • {p.kelas || kelasWali?.nama_kelas}
+                    </p>
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => navigate('/nilai')}>
-                    Input Nilai
-                  </Button>
+                  <div className="text-right">
+                    <p className="text-sm font-semibold text-destructive">{p.nilai}</p>
+                    <p className="text-xs text-muted-foreground">KKM {p.kkm}</p>
+                  </div>
                 </div>
               ))}
             </div>
           ) : (
             <div className="h-64 flex items-center justify-center text-muted-foreground">
-              Belum ada jadwal mengajar
+              Tidak ada siswa di bawah KKM
             </div>
           )}
         </div>
       </div>
 
-      {/* Aksi Cepat*/}
       <div className="bg-card rounded-xl border p-5 shadow-card">
         <h3 className="font-semibold text-foreground mb-4">Akses Cepat</h3>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Button variant="outline" className="h-auto py-4 flex-col gap-2" onClick={() => navigate('/nilai')}>
             <ClipboardList className="w-5 h-5" />
             <span className="text-xs">Input Nilai</span>
