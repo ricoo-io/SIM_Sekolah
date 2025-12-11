@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { PageHeader } from '@/components/shared/PageHeader';
-import { DataTable } from '@/components/shared/DataTable';
+import { DataTable } from '@/components/ui/data-table';
+import { ColumnDef } from '@tanstack/react-table';
+
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
@@ -34,7 +36,10 @@ const AssignGuru: React.FC = () => {
     id_kelas: '',
   });
 
+  const [filterMapel, setFilterMapel] = useState<string>('all');
+
   const loadData = async () => {
+    setIsLoading(true);
     try {
       const [assignmentsList,  allUsers, mapelList, kelasList] = await Promise.all([
         guruMapelApi.getAll(),
@@ -48,6 +53,7 @@ const AssignGuru: React.FC = () => {
       setKelas(kelasList);
     } catch (error) {
       console.error('Error loading data:', error);
+      toast.error('Gagal memuat data');
     } finally {
       setIsLoading(false);
     }
@@ -56,6 +62,7 @@ const AssignGuru: React.FC = () => {
   useEffect(() => {
     loadData();
   }, []);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,27 +108,36 @@ const AssignGuru: React.FC = () => {
     });
   };
 
-  const columns = [
+  const filteredAssignments = assignments.filter(item => {
+    return filterMapel === 'all' || item.id_mapel.toString() === filterMapel;
+  });
+
+  const columns: ColumnDef<GuruMataPelajaran>[] = [
     {
-      key: 'guru',
+      accessorKey: 'guru.nip',
+      header: 'NIP',
+      cell: ({ row }) => row.original.guru?.nip || '-',
+    },
+    {
+      accessorKey: 'guru.nama',
       header: 'Guru',
-      render: (item: GuruMataPelajaran) => item.guru?.nama || '-',
+      cell: ({ row }) => row.original.guru?.nama || '-',
     },
     {
-      key: 'mapel',
+      accessorKey: 'mapel.mata_pelajaran',
       header: 'Mata Pelajaran',
-      render: (item: GuruMataPelajaran) => item.mapel?.mata_pelajaran || '-',
+      cell: ({ row }) => row.original.mapel?.mata_pelajaran || '-',
     },
     {
-      key: 'kelas',
+      accessorKey: 'kelas.nama_kelas',
       header: 'Kelas',
-      render: (item: GuruMataPelajaran) => item.kelas?.nama_kelas || '-',
+      cell: ({ row }) => row.original.kelas?.nama_kelas || '-',
     },
     {
-      key: 'actions',
+      id: 'actions',
       header: 'Aksi',
-      render: (item: GuruMataPelajaran) => (
-        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDelete(item.id)}>
+      cell: ({ row }) => (
+        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDelete(row.original.id)}>
           <Trash2 className="w-4 h-4" />
         </Button>
       ),
@@ -143,15 +159,28 @@ const AssignGuru: React.FC = () => {
       />
 
       <DataTable
-        data={assignments}
+        data={filteredAssignments}
         columns={columns}
-        keyExtractor={(item) => item.id}
-        isLoading={isLoading}
-        emptyMessage="Belum ada penugasan"
+        searchKey="guru.nama"
+        filterElement={
+          <div className="w-full sm:w-[200px]">
+             <Select value={filterMapel} onValueChange={setFilterMapel}>
+              <SelectTrigger>
+                <SelectValue placeholder="Semua Mapel" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Mapel</SelectItem>
+                {mapel.map((m) => (
+                  <SelectItem key={m.id} value={m.id.toString()}>{m.mata_pelajaran}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        }
       />
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
+         <DialogContent>
           <DialogHeader>
             <DialogTitle>Tambah Penugasan</DialogTitle>
           </DialogHeader>
