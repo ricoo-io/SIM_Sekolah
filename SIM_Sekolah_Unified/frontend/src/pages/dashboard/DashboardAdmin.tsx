@@ -28,8 +28,9 @@ export const DashboardAdmin: React.FC = () => {
     kelas: 0,
   });
 
+  /* Refactored State for Grouped Data */
   const [incompleteGrades, setIncompleteGrades] = useState<
-    { siswa: Siswa; mapel: string; guru: string; kelas: string; missing: string }[]
+    { mapel: string; guru: string; kelas: string; missing: string; count: number }[]
   >([]);
 
   const [isLoading, setIsLoading] = useState(true);
@@ -60,9 +61,11 @@ export const DashboardAdmin: React.FC = () => {
           kelas: kelasList.length,
         });
 
-        const incomplete: { siswa: Siswa; mapel: string; guru: string; kelas: string; missing: string }[] = [];
-
         const kelasMap = new Map(kelasList.map(k => [k.id, k.nama_kelas]));
+        const groupedIncomplete: Record<
+          string,
+          { mapel: string; guru: string; kelas: string; missing: Set<string>; count: number }
+        > = {};
 
         siswaList.forEach(siswa => {
           mapelList.forEach(mapel => {
@@ -82,41 +85,46 @@ export const DashboardAdmin: React.FC = () => {
               : guruAssigned?.nama ?? '-';
 
             const kelasNama = kelasMap.get(siswa.id_kelas) ?? '-';
+            const groupKey = `${mapel.id}-${siswa.id_kelas}`;
+
+            const missingComponents: string[] = [];
 
             if (!nilai) {
-              incomplete.push({
-                siswa,
-                mapel: mapel.mata_pelajaran,
-                guru: guruNama,
-                kelas: kelasNama,
-                missing: 'Semua nilai',
-              });
-              return;
+              missingComponents.push('Semua nilai');
+            } else {
+              if (nilai.nilai_harian_1 === null) missingComponents.push('NH1');
+              if (nilai.nilai_harian_2 === null) missingComponents.push('NH2');
+              if (nilai.nilai_harian_3 === null) missingComponents.push('NH3');
+              if (nilai.nilai_UTS === null) missingComponents.push('UTS');
+              if (nilai.nilai_harian_4 === null) missingComponents.push('NH4');
+              if (nilai.nilai_harian_5 === null) missingComponents.push('NH5');
+              if (nilai.nilai_harian_6 === null) missingComponents.push('NH6');
+              if (nilai.nilai_UAS === null) missingComponents.push('UAS');
             }
 
-            const missing: string[] = [];
-            if (nilai.nilai_harian_1 === null) missing.push('NH1');
-            if (nilai.nilai_harian_2 === null) missing.push('NH2');
-            if (nilai.nilai_harian_3 === null) missing.push('NH3');
-            if (nilai.nilai_UTS === null) missing.push('UTS');
-            if (nilai.nilai_harian_4 === null) missing.push('NH4');
-            if (nilai.nilai_harian_5 === null) missing.push('NH5');
-            if (nilai.nilai_harian_6 === null) missing.push('NH6');
-            if (nilai.nilai_UAS === null) missing.push('UAS');
-
-            if (missing.length > 0) {
-              incomplete.push({
-                siswa,
-                mapel: mapel.mata_pelajaran,
-                guru: guruNama,
-                kelas: kelasNama,
-                missing: missing.join(', '),
-              });
+            if (missingComponents.length > 0) {
+              if (!groupedIncomplete[groupKey]) {
+                groupedIncomplete[groupKey] = {
+                  mapel: mapel.mata_pelajaran,
+                  guru: guruNama,
+                  kelas: kelasNama,
+                  missing: new Set(),
+                  count: 0,
+                };
+              }
+              groupedIncomplete[groupKey].count += 1;
+              missingComponents.forEach(c => groupedIncomplete[groupKey].missing.add(c));
             }
           });
         });
 
-        setIncompleteGrades(incomplete.slice(0, 50));
+
+        const incompleteArray = Object.values(groupedIncomplete).map(group => ({
+          ...group,
+          missing: Array.from(group.missing).join(', '),
+        }));
+
+        setIncompleteGrades(incompleteArray);
       } catch (error) {
         console.error('Error loading dashboard data:', error);
       } finally {
@@ -149,41 +157,59 @@ export const DashboardAdmin: React.FC = () => {
         <StatsCard title="Total Kelas" value={stats.kelas} icon={School} variant="info" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
-        <div className="bg-card rounded-xl border p-5 shadow-card">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-card rounded-xl border p-5 shadow-card col-span-2">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="font-semibold text-foreground">Nilai Belum Lengkap</h3>
-              <p className="text-sm text-muted-foreground">Siswa yang perlu dilengkapi nilainya</p>
+              <h3 className="font-semibold text-foreground">Laporan Pengisian Nilai</h3>
+              <p className="text-sm text-muted-foreground">Ringkasan kelas yang belum lengkap nilainya</p>
             </div>
             <AlertTriangle className="w-5 h-5 text-warning" />
           </div>
 
           {incompleteGrades.length > 0 ? (
-            <div className="space-y-3 min-h-[300px] max-h-[300px] overflow-y-auto pr-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[300px] overflow-y-auto p-1">
               {incompleteGrades.map((item, idx) => (
-                <div key={idx} className="bg-muted/50 rounded-lg p-3">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-1">
-                      {/* Bagian ini yang diubah agar sejajar dan ganti titik jadi garis */}
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium text-sm text-foreground">{item.siswa.nama}</p>
-                        <span className="text-muted-foreground/40">|</span>
-                        <p className="text-xs text-muted-foreground">Kelas {item.kelas}</p>
+                <div key={idx} className="bg-muted/30 rounded-lg p-4 border border-border/50 hover:border-border transition-colors">
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="font-semibold text-sm">{item.mapel}</h4>
+                        <p className="text-xs text-muted-foreground mt-0.5">{item.kelas}</p>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {item.mapel} <span className="mx-1 text-muted-foreground/40">|</span> {item.guru}
-                      </p>
+                      <span className="text-xs font-medium bg-destructive/10 text-destructive px-2 py-1 rounded-full">
+                        {item.count} Siswa
+                      </span>
                     </div>
-                    <span className="text-xs text-warning bg-warning/10 px-2 py-1 rounded-full self-start">
-                      {item.missing}
-                    </span>
+                    
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground border-t-2 border-gray-200 pt-2">
+                      <Users className="w-3 h-3" />
+                      <span className="truncate">{item.guru}</span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1">
+                      {item.missing.split(', ').slice(0, 3).map((m, i) => (
+                         <span key={i} className="text-[10px] uppercase bg-destructive/10 text-destructive px-1.5 py-0.5 rounded">
+                           {m}
+                         </span>
+                      ))}
+                      {item.missing.split(', ').length > 3 && (
+                        <span className="text-[10px] text-muted-foreground px-1 py-0.5">
+                          +{item.missing.split(', ').length - 3} lainnya
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="h-64 flex items-start text-muted-foreground">Semua nilai sudah lengkap</div>
+            <div className="h-64 flex items-center justify-center text-muted-foreground">
+              <div className="text-center">
+                <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                <p>Semua nilai sudah lengkap!</p>
+              </div>
+            </div>
           )}
         </div>
       </div>
