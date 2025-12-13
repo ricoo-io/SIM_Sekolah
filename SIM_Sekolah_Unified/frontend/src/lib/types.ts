@@ -68,6 +68,7 @@ export interface Penilaian {
   id_mapel: number;
   id_guru: number;
   semester: Semester;
+  tahun_ajaran: string;
   nilai_harian_1: number | null;
   nilai_harian_2: number | null;
   nilai_harian_3: number | null;

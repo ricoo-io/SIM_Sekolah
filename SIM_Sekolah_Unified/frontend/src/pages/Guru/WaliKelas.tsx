@@ -34,6 +34,7 @@ const WaliKelas: React.FC = () => {
   const [penilaian, setPenilaian] = useState<Penilaian[]>([]);
   const [rapot, setRapot] = useState<Record<number, Rapot>>({});
   const [semester, setSemester] = useState<Semester>('ganjil');
+  const [tahunAjaran, setTahunAjaran] = useState<string>('2024/2025');
   const [isLoading, setIsLoading] = useState(true);
 
   const loadData = async () => {
@@ -49,11 +50,11 @@ const WaliKelas: React.FC = () => {
 
       setSiswa(siswaList);
       setMapel(mapelList);
-      setPenilaian(penilaianList.filter(p => p.siswa?.id_kelas === kelasWali.id && p.semester === semester));
+      setPenilaian(penilaianList.filter(p => p.siswa?.id_kelas === kelasWali.id && p.semester === semester && (p as any).tahun_ajaran === tahunAjaran));
 
       const rapotMap: Record<number, Rapot> = {};
       rapotList
-        .filter(r => r.siswa?.id_kelas === kelasWali.id && r.semester === semester)
+        .filter(r => r.siswa?.id_kelas === kelasWali.id && r.semester === semester && (r as any).tahun_ajaran === tahunAjaran)
         .forEach(r => {
           rapotMap[r.id_siswa] = r;
         });
@@ -67,7 +68,7 @@ const WaliKelas: React.FC = () => {
 
   useEffect(() => {
     loadData();
-  }, [kelasWali, semester]);
+  }, [kelasWali, semester, tahunAjaran]);
 
   const getSiswaAverage = (siswaId: number) => {
     const nilaiValid = penilaian
@@ -159,7 +160,16 @@ const WaliKelas: React.FC = () => {
         description="Monitoring nilai dan absensi siswa"
       >
         <div className="flex items-center gap-2">
-          <Label className="whitespace-nowrap">Semester</Label>
+          <Select value={tahunAjaran} onValueChange={setTahunAjaran}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="2024/2025">2024/2025</SelectItem>
+              <SelectItem value="2025/2026">2025/2026</SelectItem>
+            </SelectContent>
+          </Select>
+
           <Select value={semester} onValueChange={(v: Semester) => setSemester(v)}>
             <SelectTrigger className="w-[140px]">
               <SelectValue />

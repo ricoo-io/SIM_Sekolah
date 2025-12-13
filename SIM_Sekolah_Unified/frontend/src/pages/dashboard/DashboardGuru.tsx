@@ -12,6 +12,13 @@ import {
   AlertTriangle,
   TrendingUp,
 } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { guruMapelApi, siswaApi, penilaianApi, mapelApi } from '@/lib/api';
 import { MataPelajaran, Penilaian } from '@/lib/types';
 
@@ -32,6 +39,9 @@ export const DashboardGuru: React.FC = () => {
   const [perhatianList, setPerhatianList] = useState<
     { id_siswa: number; siswa: string; mapel: string; nilai: number; kkm: number; kelas?: string }[]
   >([]);
+
+  const [filterTahunAjaran, setFilterTahunAjaran] = useState<string>('2024/2025');
+  const [filterSemester, setFilterSemester] = useState<string>('ganjil');
 
   const [isLoading, setIsLoading] = useState(true);
 
@@ -85,6 +95,8 @@ export const DashboardGuru: React.FC = () => {
             p =>
               p.id_mapel === a.id_mapel &&
               p.siswa?.id_kelas === a.id_kelas &&
+              p.tahun_ajaran === filterTahunAjaran &&
+              p.semester === filterSemester &&
               isNilaiComplete(p),
           ).length;
           const percent = total ? Math.round((done / total) * 100) : 0;
@@ -104,7 +116,9 @@ export const DashboardGuru: React.FC = () => {
           .filter(p => {
             if (p.nilai_Akhir === null) return false;
             const key = `${p.siswa?.id_kelas}-${p.id_mapel}`;
-            return assignmentsLookup.has(key);
+            const matchesTahunAjaran = p.tahun_ajaran === filterTahunAjaran;
+            const matchesSemester = p.semester === filterSemester;
+            return assignmentsLookup.has(key) && matchesTahunAjaran && matchesSemester;
           })
           .map(p => {
             const kkm = p.mapel?.kkm ?? mapelLookup[p.id_mapel]?.kkm ?? 75;
@@ -129,7 +143,7 @@ export const DashboardGuru: React.FC = () => {
     };
 
     loadData();
-  }, [user, kelasWali]);
+  }, [user, kelasWali, filterTahunAjaran, filterSemester]);
 
   if (isLoading) {
     return (
@@ -162,7 +176,26 @@ export const DashboardGuru: React.FC = () => {
               <h3 className="font-semibold text-foreground">Status Pengisian Nilai</h3>
               <p className="text-sm text-muted-foreground">Progress per kelas / mapel</p>
             </div>
-            <TrendingUp className="w-5 h-5 text-muted-foreground" />
+            <div className="flex gap-2">
+              <Select value={filterTahunAjaran} onValueChange={setFilterTahunAjaran}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="2024/2025">2024/2025</SelectItem>
+                  <SelectItem value="2025/2026">2025/2026</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={filterSemester} onValueChange={setFilterSemester}>
+                <SelectTrigger className="w-[130px]">
+                  <SelectValue placeholder="Semester" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ganjil">Ganjil</SelectItem>
+                  <SelectItem value="genap">Genap</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {progressList.length > 0 ? (

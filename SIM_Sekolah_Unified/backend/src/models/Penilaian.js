@@ -38,6 +38,11 @@ const Penilaian = sequelize.define('Penilaian', {
     type: DataTypes.ENUM('ganjil', 'genap'),
     allowNull: false
   },
+  tahun_ajaran: {
+    type: DataTypes.STRING(255),
+    allowNull: false,
+    defaultValue: '2024/2025'
+  },
   nilai_harian_1: {
     type: DataTypes.DECIMAL(5, 2),
     allowNull: true
@@ -83,7 +88,7 @@ const Penilaian = sequelize.define('Penilaian', {
   indexes: [
     {
       unique: true,
-      fields: ['id_siswa', 'id_mapel', 'semester']
+      fields: ['id_siswa', 'id_mapel', 'semester', 'tahun_ajaran']
     }
   ]
 });

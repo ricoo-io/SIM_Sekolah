@@ -22,12 +22,11 @@ export const addRapot = asyncHandler(async (req, res) => {
     catatan_wali_kelas
   } = req.body;
 
-  if (!id_siswa || !tahun_ajaran || !semester) {
+  if (!id_siswa || !semester) {
     return res.status(422).json({
       message: 'Validation error',
       errors: {
         id_siswa: !id_siswa ? ['Siswa is required'] : [],
-        tahun_ajaran: !tahun_ajaran ? ['Tahun ajaran is required'] : [],
         semester: !semester ? ['Semester is required'] : []
       }
     });
@@ -42,7 +41,7 @@ export const addRapot = asyncHandler(async (req, res) => {
 
   const rapot = await Rapot.create({
     id_siswa,
-    tahun_ajaran,
+    tahun_ajaran: tahun_ajaran || '2024/2025',
     semester,
     sakit: sakit || 0,
     izin: izin || 0,

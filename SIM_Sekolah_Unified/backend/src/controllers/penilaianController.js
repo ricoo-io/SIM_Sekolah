@@ -44,6 +44,7 @@ export const addPenilaian = asyncHandler(async (req, res) => {
     id_mapel,
     id_guru,
     semester,
+    tahun_ajaran,
     nilai_harian_1,
     nilai_harian_2,
     nilai_harian_3,
@@ -78,7 +79,8 @@ export const addPenilaian = asyncHandler(async (req, res) => {
     where: {
       id_siswa,
       id_mapel,
-      semester
+      semester,
+      tahun_ajaran: tahun_ajaran || '2024/2025'
     },
     defaults: {
       id_guru,

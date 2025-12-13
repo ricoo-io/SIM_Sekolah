@@ -52,7 +52,7 @@ const startServer = async () => {
     await sequelize.authenticate();
 
     if (process.env.NODE_ENV === 'development') {
-      await sequelize.sync({ alter: false });
+      await sequelize.sync({ alter: true });
     }
 
     app.listen(PORT, () => {

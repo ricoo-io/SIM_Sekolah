@@ -10,6 +10,13 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   siswaApi,
   usersApi,
   mapelApi,
@@ -31,6 +38,9 @@ export const DashboardAdmin: React.FC = () => {
   const [incompleteGrades, setIncompleteGrades] = useState<
     { mapel: string; guru: string; kelas: string; missing: string; count: number }[]
   >([]);
+
+  const [filterTahunAjaran, setFilterTahunAjaran] = useState<string>('2024/2025');
+  const [filterSemester, setFilterSemester] = useState<string>('ganjil');
 
   const [isLoading, setIsLoading] = useState(true);
 
@@ -76,7 +86,9 @@ export const DashboardAdmin: React.FC = () => {
               : undefined;
 
             const nilai = penilaianList.find(
-              p => p.id_siswa === siswa.id && p.id_mapel === mapel.id,
+              p => p.id_siswa === siswa.id && p.id_mapel === mapel.id && 
+                   (p as any).tahun_ajaran === filterTahunAjaran &&
+                   p.semester === filterSemester,
             );
 
             const guruNama = nilai
@@ -132,7 +144,7 @@ export const DashboardAdmin: React.FC = () => {
     };
 
     loadData();
-  }, []);
+  }, [filterTahunAjaran, filterSemester]);
 
   if (isLoading) {
     return (
@@ -163,7 +175,26 @@ export const DashboardAdmin: React.FC = () => {
               <h3 className="font-semibold text-foreground">Laporan Pengisian Nilai</h3>
               <p className="text-sm text-muted-foreground">Ringkasan kelas yang belum lengkap nilainya</p>
             </div>
-            <AlertTriangle className="w-5 h-5 text-warning" />
+            <div className="flex gap-2">
+              <Select value={filterTahunAjaran} onValueChange={setFilterTahunAjaran}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="2024/2025">2024/2025</SelectItem>
+                  <SelectItem value="2025/2026">2025/2026</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={filterSemester} onValueChange={setFilterSemester}>
+                <SelectTrigger className="w-[130px]">
+                  <SelectValue placeholder="Semester" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ganjil">Ganjil</SelectItem>
+                  <SelectItem value="genap">Genap</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {incompleteGrades.length > 0 ? (

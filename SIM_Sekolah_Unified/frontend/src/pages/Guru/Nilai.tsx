@@ -29,6 +29,7 @@ const NilaiPage: React.FC = () => {
   const [assignments, setAssignments] = useState<GuruMataPelajaran[]>([]);
   const [selectedAssignment, setSelectedAssignment] = useState<string>('');
   const [semester, setSemester] = useState<Semester>('ganjil');
+  const [tahunAjaran, setTahunAjaran] = useState<string>('2024/2025');
   const [siswa, setSiswa] = useState<Siswa[]>([]);
   const [penilaian, setPenilaian] = useState<Record<number, Penilaian>>({});
   const [mapelKkm, setMapelKkm] = useState<number>(75);
@@ -76,7 +77,7 @@ const NilaiPage: React.FC = () => {
         const penilaianMap: Record<number, Penilaian> = {};
         siswaList.forEach(s => {
           const existing = allPenilaian.find(
-            p => p.id_siswa === s.id && p.id_mapel === assignment.id_mapel && p.semester === semester
+            p => p.id_siswa === s.id && p.id_mapel === assignment.id_mapel && p.semester === semester && p.tahun_ajaran === tahunAjaran
           );
           if (existing) {
             penilaianMap[s.id] = existing;
@@ -87,6 +88,7 @@ const NilaiPage: React.FC = () => {
               id_mapel: assignment.id_mapel,
               id_guru: user!.id,
               semester,
+              tahun_ajaran: tahunAjaran,
               nilai_harian_1: null,
               nilai_harian_2: null,
               nilai_harian_3: null,
@@ -105,7 +107,7 @@ const NilaiPage: React.FC = () => {
       }
     };
     loadGrades();
-  }, [selectedAssignment, semester, assignments, user]);
+  }, [selectedAssignment, semester, tahunAjaran, assignments, user]);
 
   const handleNilaiChange = (siswaId: number, field: keyof Penilaian, value: string) => {
     let numValue: number | null = null;
@@ -165,6 +167,7 @@ const NilaiPage: React.FC = () => {
           id_mapel: p.id_mapel,
           id_guru: p.id_guru,
           semester: p.semester,
+          tahun_ajaran: tahunAjaran,
           nilai_harian_1: p.nilai_harian_1,
           nilai_harian_2: p.nilai_harian_2,
           nilai_harian_3: p.nilai_harian_3,
@@ -207,7 +210,7 @@ const NilaiPage: React.FC = () => {
       />
 
       <div className="bg-card rounded-xl border p-5 shadow-card space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="space-y-2">
             <Label>Mata Pelajaran & Kelas</Label>
             <Select value={selectedAssignment} onValueChange={setSelectedAssignment}>
@@ -224,6 +227,18 @@ const NilaiPage: React.FC = () => {
             </Select>
           </div>
           <div className="space-y-2">
+            <Label>Tahun Ajaran</Label>
+            <Select value={tahunAjaran} onValueChange={setTahunAjaran}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="2024/2025">2024/2025</SelectItem>
+                <SelectItem value="2025/2026">2025/2026</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
             <Label>Semester</Label>
             <Select value={semester} onValueChange={(v: Semester) => setSemester(v)}>
               <SelectTrigger>
@@ -235,8 +250,9 @@ const NilaiPage: React.FC = () => {
               </SelectContent>
             </Select>
           </div>
-          <div className="flex items-end gap-2">
-            <Button onClick={handleSave} disabled={!selectedAssignment || isSaving}>
+          <div className="space-y-2">
+            <Label>&nbsp;</Label>
+            <Button onClick={handleSave} disabled={!selectedAssignment || isSaving} className="w-full">
               <Save className="w-4 h-4 mr-2" />
               {isSaving ? 'Menyimpan...' : 'Simpan'}
             </Button>

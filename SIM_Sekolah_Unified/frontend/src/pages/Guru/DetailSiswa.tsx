@@ -19,6 +19,7 @@ const DetailSiswa: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [semester, setSemester] = useState<Semester>('ganjil');
+  const [tahunAjaran, setTahunAjaran] = useState<string>('2024/2025');
   const [siswa, setSiswa] = useState<Siswa | null>(null);
   const [mapel, setMapel] = useState<MataPelajaran[]>([]);
   const [penilaian, setPenilaian] = useState<Penilaian[]>([]);
@@ -53,11 +54,12 @@ const DetailSiswa: React.FC = () => {
       setMapel(mapelList);
       setPenilaian(penilaianList.filter(p => p.semester === semester));
       
-      setPenilaian(penilaianList.filter(p => p.semester === semester));
+      setPenilaian(penilaianList.filter(p => p.semester === semester && p.tahun_ajaran === tahunAjaran));
       
       const currentRapot = rapotList.find(r => 
         r.id_siswa === studentId && 
-        r.semester.toLowerCase() === semester.toLowerCase()
+        r.semester.toLowerCase() === semester.toLowerCase() &&
+        r.tahun_ajaran === tahunAjaran
       );
       
       setRapot(currentRapot || null);
@@ -83,14 +85,14 @@ const DetailSiswa: React.FC = () => {
 
   useEffect(() => {
     loadData();
-  }, [id, semester]);
+  }, [id, semester, tahunAjaran]);
 
   const handleSaveAbsensi = async () => {
     if (!siswa || !id) return;
     try {
       const payload = {
         id_siswa: parseInt(id),
-        tahun_ajaran: '2024/2025',
+        tahun_ajaran: tahunAjaran,
         semester,
         sakit: Number(absensiForm.sakit) || 0,
         izin: Number(absensiForm.izin) || 0,
@@ -154,9 +156,18 @@ const DetailSiswa: React.FC = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Label>Semester</Label>
+            <Select value={tahunAjaran} onValueChange={setTahunAjaran}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="2024/2025">2024/2025</SelectItem>
+                <SelectItem value="2025/2026">2025/2026</SelectItem>
+              </SelectContent>
+            </Select>
+
             <Select value={semester} onValueChange={(v: Semester) => setSemester(v)}>
-              <SelectTrigger className="w-40">
+              <SelectTrigger className="w-28">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
