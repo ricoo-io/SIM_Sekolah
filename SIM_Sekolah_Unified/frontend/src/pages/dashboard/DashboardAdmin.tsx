@@ -28,7 +28,6 @@ export const DashboardAdmin: React.FC = () => {
     kelas: 0,
   });
 
-  /* Refactored State for Grouped Data */
   const [incompleteGrades, setIncompleteGrades] = useState<
     { mapel: string; guru: string; kelas: string; missing: string; count: number }[]
   >([]);
@@ -168,9 +167,9 @@ export const DashboardAdmin: React.FC = () => {
           </div>
 
           {incompleteGrades.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[300px] overflow-y-auto p-1">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 min-h-[300px] max-h-[400px] overflow-y-auto p-1">
               {incompleteGrades.map((item, idx) => (
-                <div key={idx} className="bg-muted/30 rounded-lg p-4 border border-border/50 hover:border-border transition-colors">
+                <div key={idx} className="bg-muted/30 rounded-lg p-4 border border-border/50 hover:border-border transition-colors h-fit">
                   <div className="space-y-3">
                     <div className="flex justify-between items-start">
                       <div>
@@ -189,9 +188,9 @@ export const DashboardAdmin: React.FC = () => {
 
                     <div className="flex flex-wrap gap-1">
                       {item.missing.split(', ').slice(0, 3).map((m, i) => (
-                         <span key={i} className="text-[10px] uppercase bg-destructive/10 text-destructive px-1.5 py-0.5 rounded">
-                           {m}
-                         </span>
+                          <span key={i} className="text-[10px] uppercase bg-destructive/10 text-destructive px-1.5 py-0.5 rounded">
+                            {m}
+                          </span>
                       ))}
                       {item.missing.split(', ').length > 3 && (
                         <span className="text-[10px] text-muted-foreground px-1 py-0.5">
