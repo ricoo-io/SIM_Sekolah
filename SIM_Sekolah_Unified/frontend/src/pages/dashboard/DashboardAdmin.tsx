@@ -165,9 +165,15 @@ export const DashboardAdmin: React.FC = () => {
                 <div key={idx} className="bg-muted/50 rounded-lg p-3">
                   <div className="flex items-start gap-3">
                     <div className="flex-1">
-                      <p className="font-medium text-sm text-foreground">{item.siswa.nama}</p>
-                      <p className="text-xs text-muted-foreground">Kelas {item.kelas}</p>
-                      <p className="text-xs text-muted-foreground">{item.mapel} • {item.guru}</p>
+                      {/* Bagian ini yang diubah agar sejajar dan ganti titik jadi garis */}
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-sm text-foreground">{item.siswa.nama}</p>
+                        <span className="text-muted-foreground/40">|</span>
+                        <p className="text-xs text-muted-foreground">Kelas {item.kelas}</p>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {item.mapel} <span className="mx-1 text-muted-foreground/40">|</span> {item.guru}
+                      </p>
                     </div>
                     <span className="text-xs text-warning bg-warning/10 px-2 py-1 rounded-full self-start">
                       {item.missing}
@@ -206,3 +212,4 @@ export const DashboardAdmin: React.FC = () => {
     </div>
   );
 };
+
