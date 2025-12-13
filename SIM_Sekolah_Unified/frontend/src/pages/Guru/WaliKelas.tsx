@@ -1,17 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { StatsCard } from '@/components/shared/StatsCard';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import {
   Select,
   SelectContent,
@@ -28,29 +21,20 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Users, TrendingUp, AlertTriangle, FileText, Save, PencilIcon } from 'lucide-react';
+import { Users, TrendingUp, AlertTriangle, FileText, PencilIcon } from 'lucide-react';
 import { siswaApi, penilaianApi, mapelApi, rapotApi } from '@/lib/api';
 import { Siswa, Penilaian, MataPelajaran, Rapot, Semester } from '@/lib/types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { toast } from 'sonner';
 
 const WaliKelas: React.FC = () => {
   const { kelasWali } = useAuth();
+  const navigate = useNavigate();
   const [siswa, setSiswa] = useState<Siswa[]>([]);
   const [mapel, setMapel] = useState<MataPelajaran[]>([]);
   const [penilaian, setPenilaian] = useState<Penilaian[]>([]);
   const [rapot, setRapot] = useState<Record<number, Rapot>>({});
   const [semester, setSemester] = useState<Semester>('ganjil');
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedSiswa, setSelectedSiswa] = useState<Siswa | null>(null);
-  const [isAbsensiDialogOpen, setIsAbsensiDialogOpen] = useState(false);
-  const [isNilaiDialogOpen, setIsNilaiDialogOpen] = useState(false);
-  const [absensiForm, setAbsensiForm] = useState({
-    sakit: 0,
-    izin: 0,
-    alpha: 0,
-    catatan_wali_kelas: '',
-  });
 
   const loadData = async () => {
     if (!kelasWali) return;
@@ -100,15 +84,9 @@ const WaliKelas: React.FC = () => {
   const getStudentsWithIncomplete = () => {
     return siswa.filter(s => {
       const nilaiSiswaAll = penilaian.filter(p => p.id_siswa === s.id);
-    
-      
-      const hasIncomplete = mapel.some(m => {
+      return mapel.some(m => {
         const nilai = nilaiSiswaAll.find(p => p.id_mapel === m.id);
-      
-        
         if (!nilai) return true;
-      
-        
         const hasAllComponents =
           nilai.nilai_harian_1 !== null &&
           nilai.nilai_harian_2 !== null &&
@@ -118,28 +96,18 @@ const WaliKelas: React.FC = () => {
           nilai.nilai_harian_6 !== null &&
           nilai.nilai_UTS !== null &&
           nilai.nilai_UAS !== null;
-      
         return !hasAllComponents;
       });
-    
-      return hasIncomplete;
     }).length;
   };
 
   const getStudentsBelowKkm = () => {
     return siswa.filter(s => {
       const nilaiSiswaAll = penilaian.filter(p => p.id_siswa === s.id);
-    
-      
-      const hasBelowKkm = mapel.some(m => {
+      return mapel.some(m => {
         const nilai = nilaiSiswaAll.find(p => p.id_mapel === m.id);
-      
-        
         if (!nilai) return false;
-      
         const nilaiAkhir = nilai.nilai_Akhir;
-      
-        
         const hasAllComponents =
           nilai.nilai_harian_1 !== null &&
           nilai.nilai_harian_2 !== null &&
@@ -151,52 +119,11 @@ const WaliKelas: React.FC = () => {
           nilai.nilai_UAS !== null &&
           nilaiAkhir !== null &&
           nilaiAkhir !== undefined;
-      
-        
         return hasAllComponents && nilaiAkhir < m.kkm;
       });
-    
-      return hasBelowKkm;
     }).length;
   };
 
-  const getNilaiStatusCounts = (siswaId: number) => {
-    let tuntas = 0;
-    let belumTuntas = 0;
-    let remedial = 0;
-
-    mapel.forEach(m => {
-      const nilai = penilaian.find(p => p.id_siswa === siswaId && p.id_mapel === m.id);
-      const nilaiAkhir = nilai?.nilai_Akhir;
-
-      const hasAllComponents =
-        nilai?.nilai_harian_1 !== null &&
-        nilai?.nilai_harian_2 !== null &&
-        nilai?.nilai_harian_3 !== null &&
-        nilai?.nilai_harian_4 !== null &&
-        nilai?.nilai_harian_5 !== null &&
-        nilai?.nilai_harian_6 !== null &&
-        nilai?.nilai_UTS !== null &&
-        nilai?.nilai_UAS !== null &&
-        nilaiAkhir !== null &&
-        nilaiAkhir !== undefined;
-
-      if (!hasAllComponents) {
-        belumTuntas += 1;
-        return;
-      }
-
-      if (nilaiAkhir >= m.kkm) {
-        tuntas += 1;
-      } else {
-        remedial += 1;
-      }
-    });
-
-    return { tuntas, belumTuntas, remedial };
-  };
-
-  // Ranking data
   const rankingData = siswa
     .map(s => {
       const avg = getSiswaAverage(s.id);
@@ -204,49 +131,6 @@ const WaliKelas: React.FC = () => {
     })
     .sort((a, b) => b.nilai - a.nilai)
     .slice(0, 10);
-
-  const handleOpenAbsensi = (s: Siswa) => {
-    setSelectedSiswa(s);
-    const existing = rapot[s.id];
-    setAbsensiForm({
-      sakit: existing?.sakit || 0,
-      izin: existing?.izin || 0,
-      alpha: existing?.alpha || 0,
-      catatan_wali_kelas: existing?.catatan_wali_kelas || '',
-    });
-    setIsAbsensiDialogOpen(true);
-  };
-
-  const handleOpenNilai = () => {
-    setIsAbsensiDialogOpen(false);
-    setIsNilaiDialogOpen(true);
-  };
-
-  const handleBackToAbsensi = () => {
-    setIsNilaiDialogOpen(false);
-    setIsAbsensiDialogOpen(true);
-  };
-
-  const handleSaveAbsensi = async () => {
-    if (!selectedSiswa) return;
-
-    try {
-      await rapotApi.upsert({
-        id_siswa: selectedSiswa.id,
-        tahun_ajaran: '2024/2025',
-        semester,
-        sakit: absensiForm.sakit,
-        izin: absensiForm.izin,
-        alpha: absensiForm.alpha,
-        catatan_wali_kelas: absensiForm.catatan_wali_kelas,
-      });
-      toast.success('Data absensi berhasil disimpan');
-      setIsAbsensiDialogOpen(false);
-      loadData();
-    } catch (error) {
-      toast.error('Gagal menyimpan data');
-    }
-  };
 
   if (!kelasWali) {
     return (
@@ -270,13 +154,14 @@ const WaliKelas: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={`Wali Kelas ${kelasWali.nama_kelas}`} description="Monitoring nilai dan absensi siswa" />
-
-      <div className="flex gap-4">
-        <div className="space-y-2">
-          <Label>Semester</Label>
+      <PageHeader
+        title={`Wali Kelas ${kelasWali.nama_kelas}`}
+        description="Monitoring nilai dan absensi siswa"
+      >
+        <div className="flex items-center gap-2">
+          <Label className="whitespace-nowrap">Semester</Label>
           <Select value={semester} onValueChange={(v: Semester) => setSemester(v)}>
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-[140px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -285,7 +170,7 @@ const WaliKelas: React.FC = () => {
             </SelectContent>
           </Select>
         </div>
-      </div>
+      </PageHeader>
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
@@ -376,7 +261,7 @@ const WaliKelas: React.FC = () => {
         </div>
       </div>
 
-      {/* Student list */}
+      {/* Daftar Siswa */}
       <div className="bg-card rounded-xl border shadow-card overflow-hidden">
         <div className="p-4 border-b">
           <h3 className="font-semibold text-foreground">Daftar Siswa</h3>
@@ -390,8 +275,6 @@ const WaliKelas: React.FC = () => {
               <TableHead className="text-center">Rata-rata NA</TableHead>
               <TableHead className="text-center">Absensi</TableHead>
               <TableHead className="text-center">Status</TableHead>
-              <TableHead className="text-center">Nilai</TableHead>
-              <TableHead className="text-center">Aksi</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -400,7 +283,7 @@ const WaliKelas: React.FC = () => {
               const r = rapot[s.id];
 
               return (
-                <TableRow key={s.id}>
+                <TableRow key={s.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => navigate(`/guru/siswa/${s.id}`)}>
                   <TableCell>{idx + 1}</TableCell>
                   <TableCell>{s.nis}</TableCell>
                   <TableCell className="font-medium">{s.nama}</TableCell>
@@ -417,13 +300,9 @@ const WaliKelas: React.FC = () => {
                   <TableCell className="text-center">
                     {(() => {
                       const nilaiSiswaAll = penilaian.filter(p => p.id_siswa === s.id);
-    
-                      
                       const hasIncomplete = mapel.some(m => {
                         const nilai = nilaiSiswaAll.find(p => p.id_mapel === m.id);
-                        
                         const isScoreFilled = (val: number | null | undefined) => val !== null && val !== undefined;
-
                         const nilaiAkhir = nilai?.nilai_Akhir;
                         const hasAllComponents =
                           isScoreFilled(nilai?.nilai_harian_1) &&
@@ -435,12 +314,9 @@ const WaliKelas: React.FC = () => {
                           isScoreFilled(nilai?.nilai_UTS) &&
                           isScoreFilled(nilai?.nilai_UAS) &&
                           isScoreFilled(nilaiAkhir);
-                          
                         return !hasAllComponents;
                       });
 
-                       
-                       
                       if (hasIncomplete) {
                         return (
                           <Badge variant="secondary" className="border-warning text-warning bg-warning/10">
@@ -456,234 +332,12 @@ const WaliKelas: React.FC = () => {
                       );
                     })()}
                   </TableCell>
-                  <TableCell className="text-center">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => {
-                        setSelectedSiswa(s);
-                        setIsNilaiDialogOpen(true);
-                      }}
-                      title="Lihat Nilai"
-                    >
-                      <FileText className="w-4 h-4" />
-                    </Button>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Button size="sm" variant="ghost" onClick={() => handleOpenAbsensi(s)} title="Catatan & Absensi">
-                      <PencilIcon className="w-4 h-4" />
-                    </Button>
-                  </TableCell>
                 </TableRow>
               );
             })}
           </TableBody>
         </Table>
       </div>
-
-      {/* Absensi Dialog */}
-      <Dialog open={isAbsensiDialogOpen} onOpenChange={setIsAbsensiDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Catatan Wali Kelas - {selectedSiswa?.nama}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label>Sakit (hari)</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  value={absensiForm.sakit}
-                  onChange={e => setAbsensiForm({ ...absensiForm, sakit: parseInt(e.target.value) || 0 })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Izin (hari)</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  value={absensiForm.izin}
-                  onChange={e => setAbsensiForm({ ...absensiForm, izin: parseInt(e.target.value) || 0 })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Alpha (hari)</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  value={absensiForm.alpha}
-                  onChange={e => setAbsensiForm({ ...absensiForm, alpha: parseInt(e.target.value) || 0 })}
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Catatan Wali Kelas</Label>
-              <Textarea
-                value={absensiForm.catatan_wali_kelas}
-                onChange={e => setAbsensiForm({ ...absensiForm, catatan_wali_kelas: e.target.value })}
-                placeholder="Masukkan catatan untuk rapor..."
-                rows={4}
-              />
-            </div>
-            <div className="flex justify-between gap-2">
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setIsAbsensiDialogOpen(false)}>
-                  Batal
-                </Button>
-                <Button onClick={handleSaveAbsensi}>
-                  <Save className="w-4 h-4 mr-2" />
-                  Simpan
-                </Button>
-              </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Detail Nilai Dialog */}
-      <Dialog open={isNilaiDialogOpen} onOpenChange={setIsNilaiDialogOpen}>
-        <DialogContent className="max-w-7xl max-h-[90vh] overflow-hidden flex flex-col">
-          <DialogHeader>
-            <DialogTitle>Detail Nilai</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 overflow-y-auto flex-1 pr-4">
-            {/* Summary */}
-            <div className="grid grid-cols-4 gap-4 p-4 bg-muted/30 rounded-lg">
-              <div>
-                <p className="text-sm text-muted-foreground">Nama Siswa</p>
-                <p className="font-semibold">{selectedSiswa?.nama}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">NIS</p>
-                <p className="font-semibold">{selectedSiswa?.nis}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Rata-rata Nilai Akhir</p>
-                <p className="font-semibold text-lg">{selectedSiswa ? getSiswaAverage(selectedSiswa.id) || '-' : '-'}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Semester</p>
-                <p className="font-semibold capitalize">{semester}</p>
-              </div>
-            </div>
-
-            {/* Nilai Table */}
-            <div className="border rounded-lg overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/30">
-                    <TableHead className="min-w-12">No</TableHead>
-                    <TableHead className="min-w-40">Mata Pelajaran</TableHead>
-                    <TableHead className="text-center min-w-16">KKM</TableHead>
-                    <TableHead className="text-center min-w-16">NH1</TableHead>
-                    <TableHead className="text-center min-w-16">NH2</TableHead>
-                    <TableHead className="text-center min-w-16">NH3</TableHead>
-                    <TableHead className="text-center min-w-16">NH4</TableHead>
-                    <TableHead className="text-center min-w-16">NH5</TableHead>
-                    <TableHead className="text-center min-w-16">NH6</TableHead>
-                    <TableHead className="text-center min-w-16">UTS</TableHead>
-                    <TableHead className="text-center min-w-16">UAS</TableHead>
-                    <TableHead className="text-center min-w-24">Nilai Akhir</TableHead>
-                    <TableHead className="text-center min-w-24">Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {mapel.map((m, idx) => {
-                    const nilai = penilaian.find(p => p.id_siswa === selectedSiswa?.id && p.id_mapel === m.id);
-                    const nilaiAkhir = nilai?.nilai_Akhir;
-                    const isTuntas = nilaiAkhir !== null && nilaiAkhir !== undefined && nilaiAkhir >= m.kkm;
-
-                    const hasAllComponents =
-                      nilai?.nilai_harian_1 !== null &&
-                      nilai?.nilai_harian_2 !== null &&
-                      nilai?.nilai_harian_3 !== null &&
-                      nilai?.nilai_harian_4 !== null &&
-                      nilai?.nilai_harian_5 !== null &&
-                      nilai?.nilai_harian_6 !== null &&
-                      nilai?.nilai_UTS !== null &&
-                      nilai?.nilai_UAS !== null &&
-                      nilaiAkhir !== null &&
-                      nilaiAkhir !== undefined;
-
-                    return (
-                      <TableRow key={m.id}>
-                        <TableCell>{idx + 1}</TableCell>
-                        <TableCell className="font-medium">{m.mata_pelajaran}</TableCell>
-                        <TableCell className="text-center">{m.kkm}</TableCell>
-                        <TableCell className="text-center">{nilai?.nilai_harian_1 || '-'}</TableCell>
-                        <TableCell className="text-center">{nilai?.nilai_harian_2 || '-'}</TableCell>
-                        <TableCell className="text-center">{nilai?.nilai_harian_3 || '-'}</TableCell>
-                        <TableCell className="text-center">{nilai?.nilai_harian_4 || '-'}</TableCell>
-                        <TableCell className="text-center">{nilai?.nilai_harian_5 || '-'}</TableCell>
-                        <TableCell className="text-center">{nilai?.nilai_harian_6 || '-'}</TableCell>
-                        <TableCell className="text-center">{nilai?.nilai_UTS || '-'}</TableCell>
-                        <TableCell className="text-center">{nilai?.nilai_UAS || '-'}</TableCell>
-                        <TableCell className="text-center">
-                          {nilaiAkhir !== null && nilaiAkhir !== undefined ? (
-                            <span className={isTuntas ? 'text-success font-semibold' : 'text-destructive font-semibold'}>{nilaiAkhir}</span>
-                          ) : (
-                            '-'
-                          )}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {!hasAllComponents ? (
-                            <Badge variant="secondary" className="border-warning text-warning bg-warning/10">
-                              Belum Lengkap
-                            </Badge>
-                          ) : isTuntas ? (
-                            <Badge variant="outline" className="border-success text-success">
-                              Tuntas
-                            </Badge>
-                          ) : (
-                            <Badge variant="destructive">Remedial</Badge>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-
-            {/* Summary Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted/30 rounded-lg">
-              {(() => {
-                const counts = selectedSiswa
-                  ? getNilaiStatusCounts(selectedSiswa.id)
-                  : { tuntas: 0, belumTuntas: 0, remedial: 0 };
-
-                return (
-                  <>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Total Mapel</p>
-                      <p className="font-semibold">{mapel.length}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Tuntas</p>
-                      <p className="font-semibold text-success">{counts.tuntas}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Belum Lengkap</p>
-                      <p className="font-semibold text-warning">{counts.belumTuntas}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Remedial</p>
-                      <p className="font-semibold text-destructive">{counts.remedial}</p>
-                    </div>
-                  </>
-                );
-              })()}
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-2 mt-4 border-t pt-4">
-            <Button variant="outline" onClick={() => setIsNilaiDialogOpen(false)}>
-              Tutup
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

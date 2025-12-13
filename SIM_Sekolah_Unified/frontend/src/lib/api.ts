@@ -126,6 +126,11 @@ export const siswaApi = {
     const response = await apiClient.get(`/siswa?kelas=${kelasId}`);
     return response.data;
   },
+
+  getById: async (id: number): Promise<Siswa> => {
+    const response = await apiClient.get(`/siswa/${id}`);
+    return response.data;
+  },
   
   create: async (siswa: Omit<Siswa, 'id'>): Promise<Siswa> => {
     const response = await apiClient.post('/siswa', siswa);
@@ -246,6 +251,11 @@ export const rapotApi = {
   
   upsert: async (data: Omit<Rapot, 'id'>): Promise<Rapot> => {
     const response = await apiClient.post('/rapot', data);
+    return response.data;
+  },
+
+  update: async (id: number, data: Partial<Rapot>): Promise<Rapot> => {
+    const response = await apiClient.put(`/rapot/${id}`, data);
     return response.data;
   },
 };

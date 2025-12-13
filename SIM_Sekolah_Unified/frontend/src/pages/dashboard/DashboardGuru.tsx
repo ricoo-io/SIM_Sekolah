@@ -30,7 +30,7 @@ export const DashboardGuru: React.FC = () => {
   >([]);
 
   const [perhatianList, setPerhatianList] = useState<
-    { siswa: string; mapel: string; nilai: number; kkm: number; kelas?: string }[]
+    { id_siswa: number; siswa: string; mapel: string; nilai: number; kkm: number; kelas?: string }[]
   >([]);
 
   const [isLoading, setIsLoading] = useState(true);
@@ -98,24 +98,29 @@ export const DashboardGuru: React.FC = () => {
         });
         setProgressList(progressData);
 
-        if (kelasWali) {
-          const perhatian = penilaianList
-            .filter(p => p.siswa?.id_kelas === kelasWali.id && p.nilai_Akhir !== null)
-            .map(p => {
-              const kkm = p.mapel?.kkm ?? mapelLookup[p.id_mapel]?.kkm ?? 75;
-              return {
-                siswa: p.siswa?.nama || 'Siswa',
-                mapel: p.mapel?.mata_pelajaran || mapelLookup[p.id_mapel]?.mata_pelajaran || 'Mapel',
-                nilai: p.nilai_Akhir || 0,
-                kkm,
-                kelas: p.siswa?.kelas?.nama_kelas,
-              };
-            })
-            .filter(p => p.nilai < p.kkm)
-            .sort((a, b) => a.nilai - b.nilai)
-            .slice(0, 8);
-          setPerhatianList(perhatian);
-        }
+        const assignmentsLookup = new Set(assignments.map(a => `${a.id_kelas}-${a.id_mapel}`));
+
+        const perhatian = penilaianList
+          .filter(p => {
+            if (p.nilai_Akhir === null) return false;
+            const key = `${p.siswa?.id_kelas}-${p.id_mapel}`;
+            return assignmentsLookup.has(key);
+          })
+          .map(p => {
+            const kkm = p.mapel?.kkm ?? mapelLookup[p.id_mapel]?.kkm ?? 75;
+            return {
+              id_siswa: p.id_siswa,
+              siswa: p.siswa?.nama || 'Siswa',
+              mapel: p.mapel?.mata_pelajaran || mapelLookup[p.id_mapel]?.mata_pelajaran || 'Mapel',
+              nilai: p.nilai_Akhir || 0,
+              kkm,
+              kelas: p.siswa?.kelas?.nama_kelas,
+            };
+          })
+          .filter(p => p.nilai < p.kkm)
+          .sort((a, b) => a.nilai - b.nilai)
+          .slice(0, 8);
+        setPerhatianList(perhatian);
       } catch (error) {
         console.error('Error loading guru dashboard:', error);
       } finally {
@@ -144,11 +149,10 @@ export const DashboardGuru: React.FC = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <StatsCard title="Kelas Diajar" value={stats.kelasDiajar} icon={Users} variant="primary" />
         <StatsCard title="Mapel Diajar" value={stats.mapelDiajar} icon={BookOpen} variant="success" />
         <StatsCard title="Total Siswa" value={stats.totalSiswa} icon={Users} variant="info" />
-        <StatsCard title="Peran" value={user?.role || '-'} icon={ClipboardList} variant="warning" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -187,7 +191,7 @@ export const DashboardGuru: React.FC = () => {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="font-semibold text-foreground">Siswa Perlu Perhatian</h3>
-              <p className="text-sm text-muted-foreground">Nilai di bawah KKM</p>
+              <p className="text-sm text-muted-foreground">Nilai tidak tuntas</p>
             </div>
             <AlertTriangle className="w-5 h-5 text-muted-foreground" />
           </div>
@@ -195,7 +199,11 @@ export const DashboardGuru: React.FC = () => {
           {perhatianList.length > 0 ? (
             <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
               {perhatianList.map((p, idx) => (
-                <div key={`${p.siswa}-${idx}`} className="flex items-start justify-between rounded-lg border p-3">
+                <div
+                  key={`${p.siswa}-${idx}`}
+                  className="flex items-start justify-between rounded-lg border p-3 cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => navigate(`/guru/siswa/${p.id_siswa}`)}
+                >
                   <div>
                     <p className="font-semibold text-foreground">{p.siswa}</p>
                     <p className="text-sm text-muted-foreground">
@@ -219,7 +227,7 @@ export const DashboardGuru: React.FC = () => {
 
       <div className="bg-card rounded-xl border p-5 shadow-card">
         <h3 className="font-semibold text-foreground mb-4">Akses Cepat</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-2 gap-3">
           <Button variant="outline" className="h-auto py-4 flex-col gap-2" onClick={() => navigate('/nilai')}>
             <ClipboardList className="w-5 h-5" />
             <span className="text-xs">Input Nilai</span>

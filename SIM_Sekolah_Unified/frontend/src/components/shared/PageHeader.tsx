@@ -12,10 +12,11 @@ interface PageHeaderProps {
   };
 }
 
-export const PageHeader: React.FC<PageHeaderProps> = ({
+export const PageHeader: React.FC<PageHeaderProps & { children?: React.ReactNode }> = ({
   title,
   description,
   action,
+  children,
 }) => {
   const ActionIcon = action?.icon || Plus;
 
@@ -27,12 +28,15 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
           <p className="text-sm text-muted-foreground mt-1">{description}</p>
         )}
       </div>
-      {action && (
-        <Button onClick={action.onClick} className="w-full sm:w-auto">
-          <ActionIcon className="w-4 h-4 mr-2" />
-          {action.label}
-        </Button>
-      )}
+      <div className="flex items-center gap-2">
+        {children}
+        {action && (
+          <Button onClick={action.onClick} className="w-full sm:w-auto">
+            <ActionIcon className="w-4 h-4 mr-2" />
+            {action.label}
+          </Button>
+        )}
+      </div>
     </div>
   );
 };

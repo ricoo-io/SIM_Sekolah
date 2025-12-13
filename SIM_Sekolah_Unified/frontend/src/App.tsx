@@ -16,6 +16,7 @@ import Mapel from "./pages/Admin/Mapel";
 import AssignGuru from "./pages/Admin/AssignGuru";
 import Nilai from "./pages/Guru/Nilai";
 import WaliKelas from "./pages/Guru/WaliKelas";
+import DetailSiswa from "./pages/Guru/DetailSiswa";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,6 +41,7 @@ const App = () => (
               <Route path="/assign-guru" element={<AssignGuru />} />
               <Route path="/nilai" element={<Nilai />} />
               <Route path="/wali-kelas" element={<WaliKelas />} />
+              <Route path="/guru/siswa/:id" element={<DetailSiswa />} />
             </Route>
             
             <Route path="*" element={<NotFound />} />
