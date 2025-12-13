@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Pencil } from 'lucide-react';
 import { guruMapelApi, usersApi, mapelApi, kelasApi } from '@/lib/api';
 import { GuruMataPelajaran, User, MataPelajaran, Kelas } from '@/lib/types';
 import { toast } from 'sonner';
@@ -30,6 +30,7 @@ const AssignGuru: React.FC = () => {
   const [kelas, setKelas] = useState<Kelas[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingAssignment, setEditingAssignment] = useState<GuruMataPelajaran | null>(null);
   const [formData, setFormData] = useState({
     id_guru: '',
     id_mapel: '',
@@ -70,7 +71,8 @@ const AssignGuru: React.FC = () => {
       const exists = assignments.find(
         a => a.id_guru === parseInt(formData.id_guru) &&
              a.id_mapel === parseInt(formData.id_mapel) &&
-             a.id_kelas === parseInt(formData.id_kelas)
+             a.id_kelas === parseInt(formData.id_kelas) &&
+             a.id !== editingAssignment?.id
       );
       
       if (exists) {
@@ -78,18 +80,38 @@ const AssignGuru: React.FC = () => {
         return;
       }
 
-      await guruMapelApi.create({
-        id_guru: parseInt(formData.id_guru),
-        id_mapel: parseInt(formData.id_mapel),
-        id_kelas: parseInt(formData.id_kelas),
-      });
-      toast.success('Penugasan berhasil ditambahkan');
+      if (editingAssignment) {
+        await guruMapelApi.update(editingAssignment.id, {
+          id_guru: parseInt(formData.id_guru),
+          id_mapel: parseInt(formData.id_mapel),
+          id_kelas: parseInt(formData.id_kelas),
+        });
+        toast.success('Penugasan berhasil diperbarui');
+      } else {
+        await guruMapelApi.create({
+          id_guru: parseInt(formData.id_guru),
+          id_mapel: parseInt(formData.id_mapel),
+          id_kelas: parseInt(formData.id_kelas),
+        });
+        toast.success('Penugasan berhasil ditambahkan');
+      }
+
       setIsDialogOpen(false);
       resetForm();
       loadData();
     } catch (error) {
       toast.error('Gagal menyimpan data');
     }
+  };
+
+  const handleEdit = (item: GuruMataPelajaran) => {
+    setEditingAssignment(item);
+    setFormData({
+      id_guru: item.id_guru.toString(),
+      id_mapel: item.id_mapel.toString(),
+      id_kelas: item.id_kelas.toString(),
+    });
+    setIsDialogOpen(true);
   };
 
   const handleDelete = async (id: number) => {
@@ -101,6 +123,7 @@ const AssignGuru: React.FC = () => {
   };
 
   const resetForm = () => {
+    setEditingAssignment(null);
     setFormData({
       id_guru: '',
       id_mapel: '',
@@ -134,8 +157,17 @@ const AssignGuru: React.FC = () => {
       cell: ({ row }) => row.original.kelas?.nama_kelas || '-',
     },
     {
-      id: 'actions',
-      header: 'Aksi',
+      id: 'edit',
+      header: 'Edit',
+      cell: ({ row }) => (
+        <Button size="sm" variant="ghost" onClick={() => handleEdit(row.original)}>
+          <Pencil className="w-4 h-4" />
+        </Button>
+      ),
+    },
+    {
+      id: 'delete',
+      header: 'Delete',
       cell: ({ row }) => (
         <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDelete(row.original.id)}>
           <Trash2 className="w-4 h-4" />
@@ -182,7 +214,7 @@ const AssignGuru: React.FC = () => {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
          <DialogContent>
           <DialogHeader>
-            <DialogTitle>Tambah Penugasan</DialogTitle>
+            <DialogTitle>{editingAssignment ? 'Edit Penugasan' : 'Tambah Penugasan'}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
@@ -226,7 +258,7 @@ const AssignGuru: React.FC = () => {
             </div>
             <div className="flex justify-end gap-2 pt-4">
               <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Batal</Button>
-              <Button type="submit">Tambah</Button>
+              <Button type="submit">{editingAssignment ? 'Simpan' : 'Tambah'}</Button>
             </div>
           </form>
         </DialogContent>

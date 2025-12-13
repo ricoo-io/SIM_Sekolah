@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { PageHeader } from '@/components/shared/PageHeader';
-import { DataTable } from '@/components/shared/DataTable';
+import { DataTable } from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,10 +18,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Pencil, Trash2 } from 'lucide-react';
-import { kelasApi, usersApi } from '@/lib/api';
-import { Kelas, User, Tingkat } from '@/lib/types';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Pencil, Trash2, Eye, Users } from 'lucide-react';
+import { kelasApi, usersApi, siswaApi } from '@/lib/api';
+import { Kelas, User, Tingkat, Siswa } from '@/lib/types';
 import { toast } from 'sonner';
+import { ColumnDef } from '@tanstack/react-table';
 
 const NO_WALI = 'none';
 
@@ -48,6 +57,13 @@ const KelasData: React.FC = () => {
     tingkat: '7' as Tingkat,
     id_guru: NO_WALI,
   });
+  const [filterTingkat, setFilterTingkat] = useState<string>('all');
+
+  // Detail Dialog State
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [selectedKelasForDetail, setSelectedKelasForDetail] = useState<Kelas | null>(null);
+  const [studentsInClass, setStudentsInClass] = useState<Siswa[]>([]);
+  const [isLoadingStudents, setIsLoadingStudents] = useState(false);
 
   const assignedGuruIds = useMemo(
     () => new Set(kelas.filter(k => k.id_guru !== null).map(k => k.id_guru as number)),
@@ -140,6 +156,22 @@ const KelasData: React.FC = () => {
     }
   };
 
+  const handleViewDetail = async (item: Kelas) => {
+    setSelectedKelasForDetail(item);
+    setIsDetailOpen(true);
+    setIsLoadingStudents(true);
+    try {
+      const students = await siswaApi.getByKelas(item.id);
+      setStudentsInClass(students);
+    } catch (error) {
+      console.error('Failed to fetch students:', error);
+      toast.error('Gagal memuat data siswa');
+      setStudentsInClass([]);
+    } finally {
+      setIsLoadingStudents(false);
+    }
+  };
+
   const resetForm = () => {
     setEditingKelas(null);
     setFormData({
@@ -149,41 +181,59 @@ const KelasData: React.FC = () => {
     });
   };
 
-  const columns = [
-    { key: 'nama_kelas', header: 'Nama Kelas' },
+  const filteredData = useMemo(() => {
+    if (filterTingkat === 'all') return kelas;
+    return kelas.filter(k => k.tingkat === filterTingkat);
+  }, [kelas, filterTingkat]);
+
+  const columns: ColumnDef<Kelas>[] = [
+    { accessorKey: 'nama_kelas', header: 'Nama Kelas' },
     {
-      key: 'tingkat',
+      accessorKey: 'tingkat',
       header: 'Tingkat',
-      render: (item: Kelas) => (
-        <Badge variant="outline">Kelas {item.tingkat}</Badge>
+      cell: ({ row }) => (
+        <Badge variant="outline">Kelas {row.original.tingkat}</Badge>
       ),
     },
     {
-      key: 'wali_kelas',
+      accessorKey: 'wali_kelas',
       header: 'Wali Kelas',
-      render: (item: Kelas) => item.wali_kelas?.nama || <span className="text-muted-foreground">Belum ada</span>,
+      cell: ({ row }) => row.original.wali_kelas?.nama || <span className="text-muted-foreground">Belum ada</span>,
     },
     {
-      key: 'jumlah_siswa',
+      accessorKey: 'jumlah_siswa',
       header: 'Jumlah Siswa',
-      render: (item: Kelas) => (
+      cell: ({ row }) => (
         <Badge variant="secondary">
-          {item.jumlah_siswa || 0} Siswa
+          {row.original.jumlah_siswa || 0} Siswa
         </Badge>
       ),
     },
     {
-      key: 'actions',
-      header: 'Aksi',
-      render: (item: Kelas) => (
-        <div className="flex gap-2">
-          <Button size="sm" variant="ghost" onClick={() => handleEdit(item)}>
-            <Pencil className="w-4 h-4" />
-          </Button>
-          <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDelete(item.id)}>
-            <Trash2 className="w-4 h-4" />
-          </Button>
-        </div>
+      id: 'detail',
+      header: 'Detail',
+      cell: ({ row }) => (
+        <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => handleViewDetail(row.original)} title="Lihat Siswa">
+          <Users className="w-4 h-4" />
+        </Button>
+      ),
+    },
+    {
+      id: 'edit',
+      header: 'Edit',
+      cell: ({ row }) => (
+        <Button size="sm" variant="ghost" onClick={() => handleEdit(row.original)} title="Edit Kelas">
+          <Pencil className="w-4 h-4" />
+        </Button>
+      ),
+    },
+    {
+      id: 'delete',
+      header: 'Delete',
+      cell: ({ row }) => (
+        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDelete(row.original.id)} title="Hapus Kelas">
+          <Trash2 className="w-4 h-4" />
+        </Button>
       ),
     },
   ];
@@ -203,11 +253,24 @@ const KelasData: React.FC = () => {
       />
 
       <DataTable
-        data={kelas}
         columns={columns}
-        keyExtractor={(item) => item.id}
-        isLoading={isLoading}
-        emptyMessage="Belum ada data kelas"
+        data={filteredData}
+        searchKey="nama_kelas"
+        filterElement={
+          <div className="w-full sm:w-[200px]">
+            <Select value={filterTingkat} onValueChange={setFilterTingkat}>
+              <SelectTrigger>
+                <SelectValue placeholder="Pilih Tingkat" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Tingkat</SelectItem>
+                <SelectItem value="7">Kelas 7</SelectItem>
+                <SelectItem value="8">Kelas 8</SelectItem>
+                <SelectItem value="9">Kelas 9</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        }
       />
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -257,6 +320,70 @@ const KelasData: React.FC = () => {
               <Button type="submit">{editingKelas ? 'Simpan' : 'Tambah'}</Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Dialog Detail Siswa */}
+      <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+        <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
+          <DialogHeader className="border-b pb-4">
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <Users className="w-5 h-5 text-primary" />
+              Daftar Siswa - Kelas {selectedKelasForDetail?.nama_kelas}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-auto mt-4">
+            {isLoadingStudents ? (
+              <div className="flex flex-col items-center justify-center h-40 space-y-3 text-muted-foreground">
+                <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+                <p>Memuat data siswa...</p>
+              </div>
+            ) : studentsInClass.length > 0 ? (
+              <div className="border rounded-md">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50">
+                      <TableHead className="w-[50px]">No</TableHead>
+                      <TableHead className="w-[120px]">NIS</TableHead>
+                      <TableHead>Nama Siswa</TableHead>
+                      <TableHead className="w-[150px]">Jenis Kelamin</TableHead>
+                      <TableHead>Alamat</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {studentsInClass.map((siswa, index) => {
+                      const isL = siswa.jenis_kelamin === 'L';
+                      return (
+                        <TableRow key={siswa.id} className="hover:bg-muted/50 transition-colors">
+                          <TableCell className="text-center">{index + 1}</TableCell>
+                          <TableCell className="font-medium font-mono text-xs">{siswa.nis}</TableCell>
+                          <TableCell className="font-medium">{siswa.nama}</TableCell>
+                          <TableCell>
+                            <Badge 
+                              variant="outline" 
+                              className={isL ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-pink-50 text-pink-700 border-pink-200"}
+                            >
+                              {isL ? 'Laki-laki' : 'Perempuan'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">{siswa.alamat}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-40 text-muted-foreground bg-muted/20 rounded-md border border-dashed">
+                <p>Tidak ada siswa di kelas ini</p>
+              </div>
+            )}
+          </div>
+          
+          <div className="flex justify-end pt-4 border-t mt-2">
+            <Button onClick={() => setIsDetailOpen(false)}>Tutup</Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

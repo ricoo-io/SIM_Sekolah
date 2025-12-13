@@ -203,6 +203,15 @@ export const guruMapelApi = {
     const response = await apiClient.post('/guru-mapel', data);
     return response.data;
   },
+
+  update: async (id: number, data: Partial<GuruMataPelajaran>): Promise<GuruMataPelajaran | null> => {
+    try {
+      const response = await apiClient.put(`/guru-mapel/${id}`, data);
+      return response.data;
+    } catch (error) {
+      return null;
+    }
+  },
   
   delete: async (id: number): Promise<boolean> => {
     try {

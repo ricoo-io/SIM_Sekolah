@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { PageHeader } from '@/components/shared/PageHeader';
-import { DataTable } from '@/components/shared/DataTable';
+import { DataTable } from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,6 +14,7 @@ import { Pencil, Trash2 } from 'lucide-react';
 import { mapelApi } from '@/lib/api';
 import { MataPelajaran } from '@/lib/types';
 import { toast } from 'sonner';
+import { ColumnDef } from '@tanstack/react-table';
 
 const MapelData: React.FC = () => {
   const [mapel, setMapel] = useState<MataPelajaran[]>([]);
@@ -83,27 +84,31 @@ const MapelData: React.FC = () => {
     });
   };
 
-  const columns = [
-    { key: 'mata_pelajaran', header: 'Mata Pelajaran' },
+  const columns: ColumnDef<MataPelajaran>[] = [
+    { accessorKey: 'mata_pelajaran', header: 'Mata Pelajaran' },
     { 
-      key: 'kkm', 
+      accessorKey: 'kkm', 
       header: 'KKM',
-      render: (item: MataPelajaran) => (
-        <span className="font-medium text-primary">{item.kkm}</span>
+      cell: ({ row }) => (
+        <span className="font-medium text-primary">{row.original.kkm}</span>
       )
     },
     {
-      key: 'actions',
-      header: 'Aksi',
-      render: (item: MataPelajaran) => (
-        <div className="flex gap-2">
-          <Button size="sm" variant="ghost" onClick={() => handleEdit(item)}>
-            <Pencil className="w-4 h-4" />
-          </Button>
-          <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDelete(item.id)}>
-            <Trash2 className="w-4 h-4" />
-          </Button>
-        </div>
+      id: 'edit',
+      header: 'Edit',
+      cell: ({ row }) => (
+        <Button size="sm" variant="ghost" onClick={() => handleEdit(row.original)}>
+          <Pencil className="w-4 h-4" />
+        </Button>
+      ),
+    },
+    {
+      id: 'delete',
+      header: 'Delete',
+      cell: ({ row }) => (
+        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDelete(row.original.id)}>
+          <Trash2 className="w-4 h-4" />
+        </Button>
       ),
     },
   ];
@@ -125,9 +130,7 @@ const MapelData: React.FC = () => {
       <DataTable
         data={mapel}
         columns={columns}
-        keyExtractor={(item) => item.id}
-        isLoading={isLoading}
-        emptyMessage="Belum ada data mata pelajaran"
+        searchKey="mata_pelajaran"
       />
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

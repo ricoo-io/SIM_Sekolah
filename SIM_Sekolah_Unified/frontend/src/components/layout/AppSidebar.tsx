@@ -59,7 +59,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ isOpen, setIsOpen }) => 
 
   return (
     <>
-      {/* Mobile overlay */}
+
       {isOpen && (
         <div 
           className="fixed inset-0 bg-foreground/20 backdrop-blur-sm z-40 lg:hidden"
@@ -95,7 +95,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ isOpen, setIsOpen }) => 
           </Button>
         </div>
 
-        {/* User info */}
+        {/* Info User */}
         <div className="p-4 border-b border-sidebar-border">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-sidebar-accent flex items-center justify-center">
@@ -107,15 +107,14 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ isOpen, setIsOpen }) => 
               <p className="text-sm font-medium text-sidebar-accent-foreground truncate">
                 {user?.nama}
               </p>
-              <p className="text-xs text-sidebar-foreground/60 capitalize">
-                {user?.role}
-                {user?.wali_kelas && kelasWali && ` • Wali Kelas ${kelasWali.nama_kelas}`}
+              <p className="text-xs text-sidebar-foreground/60">
+                {user?.nip || '-'}
               </p>
             </div>
           </div>
         </div>
 
-        {/* Navigation */}
+        {/* Navigasi */}
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {filteredItems.map((item) => (
             <NavLink

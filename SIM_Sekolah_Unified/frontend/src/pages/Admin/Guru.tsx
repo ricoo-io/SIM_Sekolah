@@ -148,17 +148,21 @@ const GuruData: React.FC = () => {
       ),
     },
     {
-      id: 'actions',
-      header: 'Aksi',
+      id: 'edit',
+      header: 'Edit',
       cell: ({ row }) => (
-        <div className="flex gap-2">
-          <Button size="sm" variant="ghost" onClick={() => handleEdit(row.original)}>
-            <Pencil className="w-4 h-4" />
-          </Button>
-          <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDelete(row.original.id)}>
-            <Trash2 className="w-4 h-4" />
-          </Button>
-        </div>
+        <Button size="sm" variant="ghost" onClick={() => handleEdit(row.original)}>
+          <Pencil className="w-4 h-4" />
+        </Button>
+      ),
+    },
+    {
+      id: 'delete',
+      header: 'Delete',
+      cell: ({ row }) => (
+        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDelete(row.original.id)}>
+          <Trash2 className="w-4 h-4" />
+        </Button>
       ),
     },
   ];
