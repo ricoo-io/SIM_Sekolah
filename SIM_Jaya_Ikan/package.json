@@ -1,7 +1,6 @@
 {
-  "name": "sim-sekolah-unified",
+  "name": "sim-jaya-ikan",
   "version": "1.0.0",
-  "description": "School Information System - Unified Node.js + React Application",
   "main": "index.js",
   "scripts": {
     "dev": "concurrently \"npm run backend\" \"npm run frontend\"",
@@ -10,15 +9,6 @@
     "install-all": "npm install && cd backend && npm install && cd ../frontend && npm install",
     "build": "cd frontend && npm run build"
   },
-  "keywords": [
-    "school",
-    "management",
-    "react",
-    "node",
-    "express"
-  ],
-  "author": "",
-  "license": "ISC",
   "devDependencies": {
     "concurrently": "^8.2.2"
   }

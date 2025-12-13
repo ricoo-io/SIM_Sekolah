@@ -29,7 +29,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Trash2, FileText, User, Users } from 'lucide-react';
 import { siswaApi, kelasApi, penilaianApi, mapelApi } from '@/lib/api';
-import { Siswa, Kelas, Penilaian, MataPelajaran } from '@/lib/types';
+import { Siswa, Kelas, Penilaian, MataPelajaran, Semester } from '@/lib/types';
 import { toast } from 'sonner';
 
 const SiswaData: React.FC = () => {
@@ -45,6 +45,8 @@ const SiswaData: React.FC = () => {
   const [editingSiswa, setEditingSiswa] = useState<Siswa | null>(null);
   const [selectedSiswa, setSelectedSiswa] = useState<Siswa | null>(null);
   const [selectedKelas, setSelectedKelas] = useState<string>('all');
+  const [semester, setSemester] = useState<Semester>('ganjil');
+  const [tahunAjaran, setTahunAjaran] = useState<string>('2024/2025');
   const [formData, setFormData] = useState({
     nis: '',
     nama: '',
@@ -141,12 +143,18 @@ const SiswaData: React.FC = () => {
 
   const handleViewNilai = (s: Siswa) => {
     setSelectedSiswa(s);
+    setSemester('ganjil'); // Reset default
+    setTahunAjaran('2024/2025'); // Reset default
     setIsNilaiDialogOpen(true);
   };
 
   const getSiswaAverage = (siswaId: number) => {
     const nilaiValid = penilaian
-      .filter(p => p.id_siswa === siswaId)
+      .filter(p => 
+        p.id_siswa === siswaId && 
+        p.semester === semester && 
+        p.tahun_ajaran === tahunAjaran
+      )
       .map(p => Number(p.nilai_Akhir))
       .filter(v => Number.isFinite(v));
 
@@ -162,7 +170,12 @@ const SiswaData: React.FC = () => {
     let remedial = 0;
 
     mapel.forEach(m => {
-      const nilai = penilaian.find(p => p.id_siswa === siswaId && p.id_mapel === m.id);
+      const nilai = penilaian.find(p => 
+        p.id_siswa === siswaId && 
+        p.id_mapel === m.id &&
+        p.semester === semester &&
+        p.tahun_ajaran === tahunAjaran
+      );
       const nilaiAkhir = nilai?.nilai_Akhir;
 
       const hasAllComponents =
@@ -608,9 +621,31 @@ const SiswaData: React.FC = () => {
 
       <Dialog open={isNilaiDialogOpen} onOpenChange={setIsNilaiDialogOpen}>
         <DialogContent className="max-w-7xl max-h-[90vh] overflow-hidden flex flex-col">
-          <DialogHeader>
+          <DialogHeader className="flex flex-row items-center justify-between">
             <DialogTitle>Detail Nilai</DialogTitle>
+            <div className="flex gap-2 mr-6">
+              <Select value={tahunAjaran} onValueChange={setTahunAjaran}>
+                <SelectTrigger className="w-32 h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="2024/2025">2024/2025</SelectItem>
+                  <SelectItem value="2025/2026">2025/2026</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={semester} onValueChange={(v: Semester) => setSemester(v)}>
+                <SelectTrigger className="w-28 h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ganjil">Ganjil</SelectItem>
+                  <SelectItem value="genap">Genap</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </DialogHeader>
+
           <div className="space-y-4 overflow-y-auto flex-1 pr-4">
 
             <div className="grid grid-cols-4 gap-4 p-4 bg-muted/30 rounded-lg">
@@ -654,7 +689,12 @@ const SiswaData: React.FC = () => {
                 </TableHeader>
                 <TableBody>
                   {mapel.map((m, idx) => {
-                    const nilai = penilaian.find(p => p.id_siswa === selectedSiswa?.id && p.id_mapel === m.id);
+                    const nilai = penilaian.find(p => 
+                      p.id_siswa === selectedSiswa?.id && 
+                      p.id_mapel === m.id &&
+                      p.semester === semester &&
+                      p.tahun_ajaran === tahunAjaran
+                    );
                     const nilaiAkhir = nilai?.nilai_Akhir;
                     const isTuntas = nilaiAkhir !== null && nilaiAkhir !== undefined && nilaiAkhir >= m.kkm;
 

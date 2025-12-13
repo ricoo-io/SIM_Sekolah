@@ -69,7 +69,7 @@ const Login: React.FC = () => {
             Sistem Informasi<br />Manajemen Sekolah
           </h2>
           <p className="text-primary-foreground/80 text-lg max-w-md">
-            Platform terintegrasi untuk mengelola data akademik dab penilaian siswa dengan mudah dan efisien.
+            Platform terintegrasi untuk mengelola data akademik dan penilaian siswa.
           </p>
         </div>
 
@@ -148,14 +148,6 @@ const Login: React.FC = () => {
                 )}
               </Button>
             </form>
-
-            <div className="bg-muted/50 rounded-xl p-4 space-y-2">
-              <p className="text-sm font-medium text-foreground">Demo Akun:</p>
-              <div className="text-xs text-muted-foreground space-y-1">
-                <p><span className="font-medium">Admin:</span> NIP: admin123 | Password: password</p>
-                <p><span className="font-medium">Guru:</span> NIP: 1234567890 | Password: password</p>
-              </div>
-            </div>
           </div>
         </div>
       </div>

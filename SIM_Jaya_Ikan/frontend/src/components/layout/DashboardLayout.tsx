@@ -25,9 +25,9 @@ export const DashboardLayout: React.FC = () => {
     <div className="min-h-screen flex bg-background">
       <AppSidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
       
-      <div className="flex-1 flex flex-col min-w-0 lg:ml-64 transition-all duration-300">
+      <div className="flex-1 flex flex-col min-w-0 transition-all duration-300">
         {/* Top bar */}
-        <header className="h-16 bg-card border-b border-border flex items-center justify-between px-4 lg:px-6 shadow-sm">
+        <header className="sticky top-0 z-30 h-16 bg-card border-b border-border flex items-center justify-between px-4 lg:px-6 shadow-sm">
           <Button
             variant="ghost"
             size="icon"
@@ -45,7 +45,7 @@ export const DashboardLayout: React.FC = () => {
         </header>
 
         {/* Main content */}
-        <main className="flex-1 p-4 lg:p-6 overflow-auto">
+        <main className="flex-1 p-4 lg:p-6">
           <div className="animate-fade-in">
             <Outlet />
           </div>

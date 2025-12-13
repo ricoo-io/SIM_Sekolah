@@ -70,7 +70,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ isOpen, setIsOpen }) => 
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 h-screen gradient-sidebar text-sidebar-foreground flex flex-col transition-transform duration-300 ease-in-out",
+          "fixed lg:sticky top-0 left-0 z-50 w-64 h-screen gradient-sidebar text-sidebar-foreground flex flex-col transition-transform duration-300 ease-in-out",
           isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
