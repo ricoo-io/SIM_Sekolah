@@ -116,7 +116,7 @@ export const DashboardAdmin: React.FC = () => {
           });
         });
 
-        setIncompleteGrades(incomplete.slice(0, 10));
+        setIncompleteGrades(incomplete.slice(0, 50));
       } catch (error) {
         console.error('Error loading dashboard data:', error);
       } finally {
@@ -160,7 +160,7 @@ export const DashboardAdmin: React.FC = () => {
           </div>
 
           {incompleteGrades.length > 0 ? (
-            <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+            <div className="space-y-3 min-h-[300px] max-h-[300px] overflow-y-auto pr-2">
               {incompleteGrades.map((item, idx) => (
                 <div key={idx} className="bg-muted/50 rounded-lg p-3">
                   <div className="flex items-start gap-3">
