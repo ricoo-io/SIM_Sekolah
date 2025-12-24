@@ -11,6 +11,7 @@ import {
   FileText,
   AlertTriangle,
   TrendingUp,
+  Pencil,
 } from 'lucide-react';
 import {
   Select,
@@ -33,11 +34,11 @@ export const DashboardGuru: React.FC = () => {
   });
 
   const [progressList, setProgressList] = useState<
-    { id: number; label: string; percent: number; done: number; total: number }[]
+    { id: number; id_kelas: number; id_mapel: number; label: string; percent: number; done: number; total: number }[]
   >([]);
 
   const [perhatianList, setPerhatianList] = useState<
-    { id_siswa: number; siswa: string; mapel: string; nilai: number; kkm: number; kelas?: string }[]
+    { id_siswa: number; id_mapel: number; id_kelas: number; siswa: string; mapel: string; nilai: number; kkm: number; kelas?: string }[]
   >([]);
 
   const [filterTahunAjaran, setFilterTahunAjaran] = useState<string>('2024/2025');
@@ -102,6 +103,8 @@ export const DashboardGuru: React.FC = () => {
           const percent = total ? Math.round((done / total) * 100) : 0;
           return {
             id: a.id,
+            id_kelas: a.id_kelas,
+            id_mapel: a.id_mapel,
             label: `${a.mapel?.mata_pelajaran || 'Mapel'} ${a.kelas?.nama_kelas || ''}`.trim(),
             percent: Math.min(percent, 100),
             done,
@@ -124,6 +127,8 @@ export const DashboardGuru: React.FC = () => {
             const kkm = p.mapel?.kkm ?? mapelLookup[p.id_mapel]?.kkm ?? 75;
             return {
               id_siswa: p.id_siswa,
+              id_mapel: p.id_mapel,
+              id_kelas: p.siswa?.id_kelas || 0,
               siswa: p.siswa?.nama || 'Siswa',
               mapel: p.mapel?.mata_pelajaran || mapelLookup[p.id_mapel]?.mata_pelajaran || 'Mapel',
               nilai: p.nilai_Akhir || 0,
@@ -204,7 +209,17 @@ export const DashboardGuru: React.FC = () => {
                 <div key={item.id} className="space-y-1">
                   <div className="flex items-center justify-between text-sm">
                     <span className="font-medium text-foreground">{item.label}</span>
-                    <span className="text-muted-foreground">{item.percent}%</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">{item.percent}%</span>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="h-6 px-2 text-xs"
+                        onClick={() => navigate(`/nilai?kelas=${item.id_kelas}&mapel=${item.id_mapel}`)}
+                      >
+                        Input Nilai
+                      </Button>
+                    </div>
                   </div>
                   <Progress value={item.percent} />
                   <p className="text-xs text-muted-foreground">
@@ -235,7 +250,7 @@ export const DashboardGuru: React.FC = () => {
                 <div
                   key={`${p.siswa}-${idx}`}
                   className="flex items-start justify-between rounded-lg border p-3 cursor-pointer hover:bg-muted/50 transition-colors"
-                  onClick={() => navigate(`/guru/siswa/${p.id_siswa}`)}
+                  onClick={() => navigate(`/nilai?kelas=${p.id_kelas}&mapel=${p.id_mapel}`)}
                 >
                   <div>
                     <p className="font-semibold text-foreground">{p.siswa}</p>

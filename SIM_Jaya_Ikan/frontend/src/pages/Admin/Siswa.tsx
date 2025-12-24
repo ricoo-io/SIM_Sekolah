@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { DataTable } from '@/components/ui/data-table';
 import { ColumnDef } from '@tanstack/react-table';
@@ -33,6 +34,7 @@ import { Siswa, Kelas, Penilaian, MataPelajaran, Semester } from '@/lib/types';
 import { toast } from 'sonner';
 
 const SiswaData: React.FC = () => {
+  const navigate = useNavigate();
   const [siswa, setSiswa] = useState<Siswa[]>([]);
   const [kelas, setKelas] = useState<Kelas[]>([]);
   const [penilaian, setPenilaian] = useState<Penilaian[]>([]);
@@ -261,7 +263,7 @@ const SiswaData: React.FC = () => {
       id: 'nilai',
       header: 'Nilai',
       cell: ({ row }) => (
-        <Button size="sm" variant="ghost" onClick={() => handleViewNilai(row.original)}>
+        <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); handleViewNilai(row.original); }}>
           <FileText className="w-4 h-4" />
         </Button>
       ),
@@ -270,7 +272,7 @@ const SiswaData: React.FC = () => {
       id: 'actions',
       header: 'Detail',
       cell: ({ row }) => (
-        <Button size="sm" variant="ghost" onClick={() => handleViewDetail(row.original)}>
+        <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); handleViewDetail(row.original); }}>
           <User className="w-4 h-4" />
         </Button>
       ),
@@ -283,7 +285,7 @@ const SiswaData: React.FC = () => {
           size="sm" 
           variant="ghost" 
           className="text-destructive"
-          onClick={() => handleDelete(row.original.id)}
+          onClick={(e) => { e.stopPropagation(); handleDelete(row.original.id); }}
         >
           <Trash2 className="w-4 h-4" />
         </Button>
@@ -309,6 +311,7 @@ const SiswaData: React.FC = () => {
         columns={columns}
         data={filteredSiswa}
         searchKey="nama"
+        onRowClick={(siswa) => navigate(`/guru/siswa/${siswa.id}`)}
         filterElement={
           <div className="w-full sm:w-[200px]">
             <Select value={selectedKelas} onValueChange={setSelectedKelas}>

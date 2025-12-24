@@ -43,6 +43,20 @@ const MapelData: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check for duplicate name (case insensitive)
+    const normalizedName = formData.mata_pelajaran.trim().toLowerCase();
+    const isDuplicate = mapel.some(
+      (m) =>
+        m.mata_pelajaran.trim().toLowerCase() === normalizedName &&
+        (!editingMapel || m.id !== editingMapel.id)
+    );
+    
+    if (isDuplicate) {
+      toast.error('Mata pelajaran dengan nama tersebut sudah ada');
+      return;
+    }
+    
     try {
       if (editingMapel) {
         await mapelApi.update(editingMapel.id, formData);

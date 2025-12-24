@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -36,12 +37,26 @@ const NilaiPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
+  const [searchParams] = useSearchParams();
+
   useEffect(() => {
     const loadAssignments = async () => {
       if (!user) return;
       try {
         const data = await guruMapelApi.getByGuru(user.id);
         setAssignments(data);
+        
+        // Auto-select based on query params
+        const kelasParam = searchParams.get('kelas');
+        const mapelParam = searchParams.get('mapel');
+        if (kelasParam && mapelParam) {
+          const matchingAssignment = data.find(
+            a => a.id_kelas === parseInt(kelasParam) && a.id_mapel === parseInt(mapelParam)
+          );
+          if (matchingAssignment) {
+            setSelectedAssignment(matchingAssignment.id.toString());
+          }
+        }
       } catch (error) {
         console.error('Error loading assignments:', error);
       } finally {
@@ -49,7 +64,7 @@ const NilaiPage: React.FC = () => {
       }
     };
     loadAssignments();
-  }, [user]);
+  }, [user, searchParams]);
 
   useEffect(() => {
     const loadGrades = async () => {
