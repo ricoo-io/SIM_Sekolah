@@ -1,6 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,6 +19,7 @@ import { toast } from 'sonner';
 const DetailSiswa: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { kelasWali } = useAuth();
   const [semester, setSemester] = useState<Semester>('ganjil');
   const [tahunAjaran, setTahunAjaran] = useState<string>('2024/2025');
   const [siswa, setSiswa] = useState<Siswa | null>(null);
@@ -305,7 +307,7 @@ const DetailSiswa: React.FC = () => {
                                       </TableRow>
                                   )
                               })}
-                              {/* Average Row */}
+                   
                                <TableRow className="bg-muted/50 font-medium">
                                   <TableCell colSpan={10}>Rata-rata Nilai Akhir</TableCell>
                                   <TableCell className="text-center text-lg">{getAverageScore()}</TableCell>
@@ -315,7 +317,7 @@ const DetailSiswa: React.FC = () => {
                       </Table>
                   </div>
 
-                  {/* Summary Stats */}
+         
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted/30 rounded-lg">
                       {(() => {
                           let tuntas = 0;
@@ -375,7 +377,8 @@ const DetailSiswa: React.FC = () => {
               </CardContent>
           </Card>
 
-          {/* Absensi & Notes */}
+      
+          {kelasWali && siswa.id_kelas === kelasWali.id && (
            <Card>
               <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-lg">
@@ -434,6 +437,7 @@ const DetailSiswa: React.FC = () => {
                    </div>
               </CardContent>
            </Card>
+          )}
       </div>
     </div>
   );

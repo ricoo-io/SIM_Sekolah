@@ -303,7 +303,7 @@ const KelasData: React.FC = () => {
       id: 'assign',
       header: 'Assign',
       cell: ({ row }) => (
-        <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-primary" onClick={() => handleOpenAssign(row.original)} title="Assign Siswa">
+        <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => handleOpenAssign(row.original)} title="Assign Siswa">
           <UserPlus className="w-4 h-4" />
         </Button>
       ),
