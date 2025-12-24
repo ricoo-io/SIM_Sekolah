@@ -103,7 +103,7 @@ export const updateSiswa = asyncHandler(async (req, res) => {
   if (ayah) siswa.ayah = ayah;
   if (wali) siswa.wali = wali;
   if (kontak_wali) siswa.kontak_wali = kontak_wali;
-  if (id_kelas) siswa.id_kelas = id_kelas;
+  if (id_kelas !== undefined) siswa.id_kelas = id_kelas;
 
   await siswa.save();
 

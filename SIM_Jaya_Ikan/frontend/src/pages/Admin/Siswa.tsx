@@ -89,7 +89,7 @@ const SiswaData: React.FC = () => {
         await siswaApi.update(editingSiswa.id, {
           ...formData,
           jenis_kelamin: formData.jenis_kelamin as 'L' | 'P',
-          id_kelas: parseInt(formData.id_kelas),
+          id_kelas: formData.id_kelas ? parseInt(formData.id_kelas) : null,
         });
         toast.success('Siswa berhasil diperbarui');
       } else {
@@ -126,7 +126,7 @@ const SiswaData: React.FC = () => {
         ayah: selectedSiswa.ayah,
         wali: selectedSiswa.wali,
         kontak_wali: selectedSiswa.kontak_wali,
-        id_kelas: selectedSiswa.id_kelas.toString(),
+        id_kelas: selectedSiswa.id_kelas?.toString() || '',
       });
       setIsDetailDialogOpen(false);
       setIsEditDialogOpen(true);
@@ -143,8 +143,8 @@ const SiswaData: React.FC = () => {
 
   const handleViewNilai = (s: Siswa) => {
     setSelectedSiswa(s);
-    setSemester('ganjil'); // Reset default
-    setTahunAjaran('2024/2025'); // Reset default
+    setSemester('ganjil');
+    setTahunAjaran('2024/2025'); 
     setIsNilaiDialogOpen(true);
   };
 
@@ -221,7 +221,7 @@ const SiswaData: React.FC = () => {
   };
 
   const filteredSiswa = siswa.filter(s => {
-    return selectedKelas === 'all' || s.id_kelas.toString() === selectedKelas;
+    return selectedKelas === 'all' || s.id_kelas?.toString() === selectedKelas;
   });
 
   const columns: ColumnDef<Siswa>[] = [

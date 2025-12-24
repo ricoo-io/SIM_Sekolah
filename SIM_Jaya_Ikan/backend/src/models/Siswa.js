@@ -42,12 +42,12 @@ const Siswa = sequelize.define('Siswa', {
   },
   id_kelas: {
     type: DataTypes.INTEGER,
-    allowNull: false,
+    allowNull: true,
     references: {
       model: 'kelas',
       key: 'id'
     },
-    onDelete: 'CASCADE'
+    onDelete: 'SET NULL'
   }
 }, {
   tableName: 'siswa',
