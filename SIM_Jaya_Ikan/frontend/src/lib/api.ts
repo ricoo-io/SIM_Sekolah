@@ -154,6 +154,14 @@ export const siswaApi = {
       return false;
     }
   },
+
+  bulkAssignKelas: async (siswaIds: number[], kelasId: number | null): Promise<{ message: string; updated_count: number }> => {
+    const response = await apiClient.patch('/siswa/bulk-assign', {
+      siswa_ids: siswaIds,
+      id_kelas: kelasId
+    });
+    return response.data;
+  },
 };
 
 // MATA PELAJARAN API

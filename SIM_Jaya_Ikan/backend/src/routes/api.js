@@ -39,6 +39,7 @@ router.delete('/kelas/:id', kelasController.deleteKelas);
 // Route Siswa
 router.get('/siswa', siswaController.getAllSiswa);
 router.post('/siswa', siswaController.addSiswa);
+router.patch('/siswa/bulk-assign', siswaController.bulkUpdateKelas);
 router.get('/siswa/:id', siswaController.getSiswaById);
 router.put('/siswa/:id', siswaController.updateSiswa);
 router.patch('/siswa/:id', siswaController.updateSiswa);

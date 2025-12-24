@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -26,7 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Pencil, Trash2, Eye, Users } from 'lucide-react';
+import { Pencil, Trash2, Eye, Users, UserPlus } from 'lucide-react';
 import { kelasApi, usersApi, siswaApi } from '@/lib/api';
 import { Kelas, User, Tingkat, Siswa } from '@/lib/types';
 import { toast } from 'sonner';
@@ -59,11 +60,20 @@ const KelasData: React.FC = () => {
   });
   const [filterTingkat, setFilterTingkat] = useState<string>('all');
 
-  // Detail Dialog State
+ 
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedKelasForDetail, setSelectedKelasForDetail] = useState<Kelas | null>(null);
   const [studentsInClass, setStudentsInClass] = useState<Siswa[]>([]);
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);
+
+  
+  const [isAssignOpen, setIsAssignOpen] = useState(false);
+  const [selectedKelasForAssign, setSelectedKelasForAssign] = useState<Kelas | null>(null);
+  const [allSiswa, setAllSiswa] = useState<Siswa[]>([]);
+  const [selectedSiswaIds, setSelectedSiswaIds] = useState<Set<number>>(new Set());
+  const [assignFilter, setAssignFilter] = useState<string>('no-class');
+  const [searchAssign, setSearchAssign] = useState('');
+  const [isAssigning, setIsAssigning] = useState(false);
 
   const assignedGuruIds = useMemo(
     () => new Set(kelas.filter(k => k.id_guru !== null).map(k => k.id_guru as number)),
@@ -172,6 +182,86 @@ const KelasData: React.FC = () => {
     }
   };
 
+  const handleOpenAssign = async (item: Kelas) => {
+    setSelectedKelasForAssign(item);
+    setSelectedSiswaIds(new Set());
+    setAssignFilter('no-class');
+    setSearchAssign('');
+    setIsAssignOpen(true);
+    try {
+      const allStudents = await siswaApi.getAll();
+      setAllSiswa(allStudents);
+    } catch (error) {
+      console.error('Failed to fetch all students:', error);
+      toast.error('Gagal memuat data siswa');
+    }
+  };
+
+  const filteredSiswaForAssign = useMemo(() => {
+    let filtered = allSiswa;
+    
+  
+    if (assignFilter === 'no-class') {
+      filtered = filtered.filter(s => s.id_kelas === null);
+    } else if (assignFilter !== 'all') {
+      filtered = filtered.filter(s => s.id_kelas?.toString() === assignFilter);
+    }
+    
+    if (selectedKelasForAssign) {
+      filtered = filtered.filter(s => s.id_kelas !== selectedKelasForAssign.id);
+    }
+    
+    if (searchAssign) {
+      const search = searchAssign.toLowerCase();
+      filtered = filtered.filter(s => 
+        s.nama.toLowerCase().includes(search) || 
+        s.nis.toLowerCase().includes(search)
+      );
+    }
+    
+    return filtered;
+  }, [allSiswa, assignFilter, selectedKelasForAssign, searchAssign]);
+
+  const toggleSiswaSelection = (id: number) => {
+    setSelectedSiswaIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const selectAllFiltered = () => {
+    setSelectedSiswaIds(new Set(filteredSiswaForAssign.map(s => s.id)));
+  };
+
+  const deselectAll = () => {
+    setSelectedSiswaIds(new Set());
+  };
+
+  const handleBulkAssign = async () => {
+    if (!selectedKelasForAssign || selectedSiswaIds.size === 0) return;
+    
+    setIsAssigning(true);
+    try {
+      const result = await siswaApi.bulkAssignKelas(
+        Array.from(selectedSiswaIds),
+        selectedKelasForAssign.id
+      );
+      toast.success(result.message);
+      setIsAssignOpen(false);
+      loadData();
+    } catch (error) {
+      console.error('Bulk assign failed:', error);
+      toast.error('Gagal memindahkan siswa');
+    } finally {
+      setIsAssigning(false);
+    }
+  };
+
   const resetForm = () => {
     setEditingKelas(null);
     setFormData({
@@ -207,6 +297,15 @@ const KelasData: React.FC = () => {
         <Badge variant="secondary">
           {row.original.jumlah_siswa || 0} Siswa
         </Badge>
+      ),
+    },
+    {
+      id: 'assign',
+      header: 'Assign',
+      cell: ({ row }) => (
+        <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-primary" onClick={() => handleOpenAssign(row.original)} title="Assign Siswa">
+          <UserPlus className="w-4 h-4" />
+        </Button>
       ),
     },
     {
@@ -383,6 +482,102 @@ const KelasData: React.FC = () => {
           
           <div className="flex justify-end pt-4 border-t mt-2">
             <Button onClick={() => setIsDetailOpen(false)}>Tutup</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Assign Siswa */}
+      <Dialog open={isAssignOpen} onOpenChange={setIsAssignOpen}>
+        <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
+          <DialogHeader className="border-b pb-4">
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <UserPlus className="w-5 h-5 text-primary" />
+              Assign Siswa ke Kelas {selectedKelasForAssign?.nama_kelas}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="flex gap-4 py-4">
+            <div className="flex-1">
+              <Input 
+                placeholder="Cari nama atau NIS..." 
+                value={searchAssign}
+                onChange={(e) => setSearchAssign(e.target.value)}
+              />
+            </div>
+            <Select value={assignFilter} onValueChange={setAssignFilter}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Filter sumber" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="no-class">Tanpa Kelas</SelectItem>
+                <SelectItem value="all">Semua Siswa</SelectItem>
+                {kelas.filter(k => k.id !== selectedKelasForAssign?.id).map((k) => (
+                  <SelectItem key={k.id} value={k.id.toString()}>Dari {k.nama_kelas}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-4 pb-2">
+            <Button variant="outline" size="sm" onClick={selectAllFiltered}>
+              Pilih Semua ({filteredSiswaForAssign.length})
+            </Button>
+            <Button variant="outline" size="sm" onClick={deselectAll}>
+              Batal Pilih
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              {selectedSiswaIds.size} siswa dipilih
+            </span>
+          </div>
+
+          <div className="flex-1 overflow-auto border rounded-md">
+            {filteredSiswaForAssign.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="w-[50px]"></TableHead>
+                    <TableHead className="w-[120px]">NIS</TableHead>
+                    <TableHead>Nama Siswa</TableHead>
+                    <TableHead className="w-[150px]">Kelas Sekarang</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredSiswaForAssign.map((siswa) => (
+                    <TableRow 
+                      key={siswa.id} 
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => toggleSiswaSelection(siswa.id)}
+                    >
+                      <TableCell>
+                        <Checkbox 
+                          checked={selectedSiswaIds.has(siswa.id)}
+                          onCheckedChange={() => toggleSiswaSelection(siswa.id)}
+                        />
+                      </TableCell>
+                      <TableCell className="font-mono text-xs">{siswa.nis}</TableCell>
+                      <TableCell className="font-medium">{siswa.nama}</TableCell>
+                      <TableCell>
+                        {siswa.kelas?.nama_kelas || <span className="text-muted-foreground">Belum ada</span>}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
+                <p>Tidak ada siswa yang tersedia</p>
+              </div>
+            )}
+          </div>
+          
+          <div className="flex justify-end gap-2 pt-4 border-t mt-2">
+            <Button variant="outline" onClick={() => setIsAssignOpen(false)}>Batal</Button>
+            <Button 
+              onClick={handleBulkAssign} 
+              disabled={selectedSiswaIds.size === 0 || isAssigning}
+            >
+              {isAssigning ? 'Memproses...' : `Assign ${selectedSiswaIds.size} Siswa`}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

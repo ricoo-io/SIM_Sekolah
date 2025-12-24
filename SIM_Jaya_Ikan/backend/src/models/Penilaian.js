@@ -27,12 +27,12 @@ const Penilaian = sequelize.define('Penilaian', {
   },
   id_guru: {
     type: DataTypes.INTEGER,
-    allowNull: false,
+    allowNull: true,
     references: {
       model: 'users',
       key: 'id'
     },
-    onDelete: 'CASCADE'
+    onDelete: 'SET NULL'
   },
   semester: {
     type: DataTypes.ENUM('ganjil', 'genap'),

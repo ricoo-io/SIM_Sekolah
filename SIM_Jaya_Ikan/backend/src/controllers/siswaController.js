@@ -127,3 +127,24 @@ export const deleteSiswa = asyncHandler(async (req, res) => {
   await siswa.destroy();
   return res.json({ message: 'Siswa deleted successfully' });
 });
+
+export const bulkUpdateKelas = asyncHandler(async (req, res) => {
+  const { siswa_ids, id_kelas } = req.body;
+
+  if (!siswa_ids || !Array.isArray(siswa_ids) || siswa_ids.length === 0) {
+    return res.status(422).json({
+      message: 'Validation error',
+      errors: { siswa_ids: ['Siswa IDs are required'] }
+    });
+  }
+
+  const [updatedCount] = await Siswa.update(
+    { id_kelas: id_kelas || null },
+    { where: { id: siswa_ids } }
+  );
+
+  return res.json({
+    message: `${updatedCount} siswa berhasil dipindahkan`,
+    updated_count: updatedCount
+  });
+});
