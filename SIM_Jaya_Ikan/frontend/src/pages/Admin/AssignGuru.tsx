@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { DataTable } from '@/components/ui/data-table';
 import { ColumnDef } from '@tanstack/react-table';
 
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import {
   Dialog,
   DialogContent,
@@ -12,46 +14,73 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Trash2, Pencil } from 'lucide-react';
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Combobox } from '@/components/ui/combobox';
+import { Trash2, UserPlus, BookOpen, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { guruMapelApi, usersApi, mapelApi, kelasApi } from '@/lib/api';
 import { GuruMataPelajaran, User, MataPelajaran, Kelas } from '@/lib/types';
 import { toast } from 'sonner';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const AssignGuru: React.FC = () => {
-  const [assignments, setAssignments] = useState<GuruMataPelajaran[]>([]);
+  const [kelas, setKelas] = useState<Kelas[]>([]);
+  const [allAssignments, setAllAssignments] = useState<GuruMataPelajaran[]>([]);
   const [guru, setGuru] = useState<User[]>([]);
   const [mapel, setMapel] = useState<MataPelajaran[]>([]);
-  const [kelas, setKelas] = useState<Kelas[]>([]);
+  
   const [isLoading, setIsLoading] = useState(true);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingAssignment, setEditingAssignment] = useState<GuruMataPelajaran | null>(null);
+  
+  // Manage Dialog State
+  const [selectedKelas, setSelectedKelas] = useState<Kelas | null>(null);
+  const [isManageOpen, setIsManageOpen] = useState(false);
+  
+  // Form State for Adding Assignment
   const [formData, setFormData] = useState({
     id_guru: '',
     id_mapel: '',
-    id_kelas: '',
   });
 
-  const [filterMapel, setFilterMapel] = useState<string>('all');
+  // Delete Confirmation State
+  const [deleteId, setDeleteId] = useState<number | null>(null);
 
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [assignmentsList,  allUsers, mapelList, kelasList] = await Promise.all([
+      const [kelasList, assignmentsList, allUsers, mapelList] = await Promise.all([
+        kelasApi.getAll(),
         guruMapelApi.getAll(),
         usersApi.getAll(),
         mapelApi.getAll(),
-        kelasApi.getAll(),
       ]);
-      setAssignments(assignmentsList);
+      
+      // Sort kelas by tingkat then name (optional, but good UX)
+      const sortedKelas = kelasList.sort((a, b) => {
+         const tA = parseInt(a.tingkat) || 0;
+         const tB = parseInt(b.tingkat) || 0;
+         if (tA !== tB) return tA - tB;
+         return a.nama_kelas.localeCompare(b.nama_kelas);
+      });
+
+      setKelas(sortedKelas);
+      setAllAssignments(assignmentsList);
       setGuru(allUsers.filter(u => u.role === 'guru'));
       setMapel(mapelList);
-      setKelas(kelasList);
     } catch (error) {
       console.error('Error loading data:', error);
       toast.error('Gagal memuat data');
@@ -64,113 +93,149 @@ const AssignGuru: React.FC = () => {
     loadData();
   }, []);
 
+  const handleOpenManage = (item: Kelas) => {
+    setSelectedKelas(item);
+    setFormData({ id_guru: '', id_mapel: '' }); // Reset form
+    setIsManageOpen(true);
+  };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const currentClassAssignments = useMemo(() => {
+    if (!selectedKelas) return [];
+    return allAssignments.filter(a => a.id_kelas === selectedKelas.id);
+  }, [selectedKelas, allAssignments]);
+
+  const handleAddAssignment = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedKelas) return;
+    if (!formData.id_guru || !formData.id_mapel) {
+      toast.error('Mohon pilih Mata Pelajaran dan Guru');
+      return;
+    }
+
     try {
-      const exists = assignments.find(
-        a => a.id_guru === parseInt(formData.id_guru) &&
-             a.id_mapel === parseInt(formData.id_mapel) &&
-             a.id_kelas === parseInt(formData.id_kelas) &&
-             a.id !== editingAssignment?.id
+
+      const exists = currentClassAssignments.find(
+        a => a.id_mapel === parseInt(formData.id_mapel) && 
+             a.id_guru === parseInt(formData.id_guru)
       );
       
       if (exists) {
-        toast.error('Penugasan sudah ada');
+        toast.error('Guru ini sudah mengajar mapel tersebut di kelas ini');
         return;
       }
+  
 
-      if (editingAssignment) {
-        await guruMapelApi.update(editingAssignment.id, {
-          id_guru: parseInt(formData.id_guru),
-          id_mapel: parseInt(formData.id_mapel),
-          id_kelas: parseInt(formData.id_kelas),
-        });
-        toast.success('Penugasan berhasil diperbarui');
-      } else {
-        await guruMapelApi.create({
-          id_guru: parseInt(formData.id_guru),
-          id_mapel: parseInt(formData.id_mapel),
-          id_kelas: parseInt(formData.id_kelas),
-        });
-        toast.success('Penugasan berhasil ditambahkan');
-      }
+      await guruMapelApi.create({
+        id_kelas: selectedKelas.id,
+        id_guru: parseInt(formData.id_guru),
+        id_mapel: parseInt(formData.id_mapel),
+      });
 
-      setIsDialogOpen(false);
-      resetForm();
-      loadData();
+      toast.success('Pengajar berhasil ditambahkan');
+      
+      const newAssignments = await guruMapelApi.getAll();
+      setAllAssignments(newAssignments);
+      
+      setFormData({ id_guru: '', id_mapel: '' });
     } catch (error) {
-      toast.error('Gagal menyimpan data');
+       console.error(error);
+       toast.error('Gagal menambah pengajar');
     }
   };
 
-  const handleEdit = (item: GuruMataPelajaran) => {
-    setEditingAssignment(item);
-    setFormData({
-      id_guru: item.id_guru.toString(),
-      id_mapel: item.id_mapel.toString(),
-      id_kelas: item.id_kelas.toString(),
-    });
-    setIsDialogOpen(true);
-  };
-
-  const handleDelete = async (id: number) => {
-    if (confirm('Yakin ingin menghapus penugasan ini?')) {
-      await guruMapelApi.delete(id);
-      toast.success('Penugasan berhasil dihapus');
-      loadData();
+  const handleDeleteAssignment = async () => {
+    if (!deleteId) return;
+    try {
+      await guruMapelApi.delete(deleteId);
+      toast.success('Pengajar berhasil dihapus');
+      
+      const newAssignments = await guruMapelApi.getAll();
+      setAllAssignments(newAssignments);
+    } catch (error) {
+      console.error(error);
+      toast.error('Gagal menghapus pengajar');
+    } finally {
+      setDeleteId(null);
     }
   };
 
-  const resetForm = () => {
-    setEditingAssignment(null);
-    setFormData({
-      id_guru: '',
-      id_mapel: '',
-      id_kelas: '',
-    });
-  };
+  const guruOptions = useMemo(() => 
+    guru.map(g => ({ label: `${g.nama} (${g.nip})`, value: g.id.toString() })), 
+  [guru]);
 
-  const filteredAssignments = assignments.filter(item => {
-    return filterMapel === 'all' || item.id_mapel.toString() === filterMapel;
-  });
+  const mapelOptions = useMemo(() => 
+    mapel.map(m => ({ label: m.mata_pelajaran, value: m.id.toString() })), 
+  [mapel]);
 
-  const columns: ColumnDef<GuruMataPelajaran>[] = [
+
+  const columns: ColumnDef<Kelas>[] = [
     {
-      accessorKey: 'guru.nip',
-      header: 'NIP',
-      cell: ({ row }) => row.original.guru?.nip || '-',
-    },
-    {
-      accessorKey: 'guru.nama',
-      header: 'Guru',
-      cell: ({ row }) => row.original.guru?.nama || '-',
-    },
-    {
-      accessorKey: 'mapel.mata_pelajaran',
-      header: 'Mata Pelajaran',
-      cell: ({ row }) => row.original.mapel?.mata_pelajaran || '-',
-    },
-    {
-      accessorKey: 'kelas.nama_kelas',
-      header: 'Kelas',
-      cell: ({ row }) => row.original.kelas?.nama_kelas || '-',
-    },
-    {
-      id: 'edit',
-      header: 'Edit',
+      accessorKey: 'nama_kelas',
+      header: 'Nama Kelas',
       cell: ({ row }) => (
-        <Button size="sm" variant="ghost" onClick={() => handleEdit(row.original)}>
-          <Pencil className="w-4 h-4" />
-        </Button>
+        <span className="font-semibold text-base">{row.original.nama_kelas}</span>
+      )
+    },
+    {
+      accessorKey: 'tingkat',
+      header: 'Tingkat',
+      cell: ({ row }) => (
+        <Badge variant="outline">Kelas {row.original.tingkat}</Badge>
       ),
     },
     {
-      id: 'delete',
-      header: 'Delete',
+      accessorKey: 'wali_kelas',
+      header: 'Wali Kelas',
+      cell: ({ row }) => row.original.wali_kelas?.nama || <span className="text-muted-foreground italic">Belum ditentukan</span>,
+    },
+    {
+        id: 'guru_count',
+        header: 'Status Pengajar',
+        cell: ({ row }) => {
+            const classAssignments = allAssignments.filter(a => a.id_kelas === row.original.id);
+            const assignedMapelIds = new Set(classAssignments.map(a => a.id_mapel));
+            const missingMapels = mapel.filter(m => !assignedMapelIds.has(m.id));
+            const isComplete = missingMapels.length === 0 && mapel.length > 0;
+
+            return (
+               <div className="flex items-center gap-2">
+                   {isComplete ? (
+                       <Badge variant="outline" className="border-success text-success">
+                           Lengkap
+                       </Badge>
+                   ) : mapel.length === 0 ? (
+                       <Badge variant="secondary">No Mapel</Badge>
+                   ) : (
+                       <TooltipProvider>
+                           <Tooltip>
+                               <TooltipTrigger asChild>
+                                   <Badge variant="secondary" className="cursor-help border-warning text-warning bg-warning/10">
+                                       {missingMapels.length} Mapel Kosong
+                                   </Badge>
+                               </TooltipTrigger>
+                               <TooltipContent>
+                                   <p className="font-semibold mb-1">Belum ada pengajar untuk:</p>
+                                   <ul className="list-disc pl-4 text-xs">
+                                       {missingMapels.slice(0, 5).map(m => (
+                                           <li key={m.id}>{m.mata_pelajaran}</li>
+                                       ))}
+                                       {missingMapels.length > 5 && <li>...dan {missingMapels.length - 5} lainnya</li>}
+                                   </ul>
+                               </TooltipContent>
+                           </Tooltip>
+                       </TooltipProvider>
+                   )}
+               </div>
+            );
+        }
+    },
+    {
+      id: 'actions',
+      header: 'Aksi',
       cell: ({ row }) => (
-        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDelete(row.original.id)}>
-          <Trash2 className="w-4 h-4" />
+        <Button size="sm" onClick={() => handleOpenManage(row.original)} className="gap-2">
+          <BookOpen className="w-4 h-4" />
+          Kelola Pengajar
         </Button>
       ),
     },
@@ -179,90 +244,127 @@ const AssignGuru: React.FC = () => {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Penugasan Guru"
-        description="Assign guru ke mata pelajaran dan kelas"
-        action={{
-          label: 'Tambah Penugasan',
-          onClick: () => {
-            resetForm();
-            setIsDialogOpen(true);
-          },
-        }}
+        title="Plotting Guru Mata Pelajaran"
+        description="Atur guru pengajar untuk setiap kelas"
       />
 
       <DataTable
-        data={filteredAssignments}
+        data={kelas}
         columns={columns}
-        searchKey="guru.nama"
-        filterElement={
-          <div className="w-full sm:w-[200px]">
-             <Select value={filterMapel} onValueChange={setFilterMapel}>
-              <SelectTrigger>
-                <SelectValue placeholder="Semua Mapel" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua Mapel</SelectItem>
-                {mapel.map((m) => (
-                  <SelectItem key={m.id} value={m.id.toString()}>{m.mata_pelajaran}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        }
+        searchKey="nama_kelas"
       />
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editingAssignment ? 'Edit Penugasan' : 'Tambah Penugasan'}</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label>Guru</Label>
-              <Select value={formData.id_guru} onValueChange={(v) => setFormData({ ...formData, id_guru: v })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih guru" />
-                </SelectTrigger>
-                <SelectContent>
-                  {guru.map((g) => (
-                    <SelectItem key={g.id} value={g.id.toString()}>{g.nama}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+
+      <Dialog open={isManageOpen} onOpenChange={setIsManageOpen}>
+         <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
+            <DialogHeader>
+                <DialogTitle className="text-xl">
+                    Guru Pengajar - Kelas {selectedKelas?.nama_kelas}
+                </DialogTitle>
+            </DialogHeader>
+
+ 
+            <div className="bg-muted/30 p-4 rounded-lg space-y-4 border">
+                <h4 className="font-medium text-sm text-muted-foreground mb-2 flex items-center gap-2">
+                    <UserPlus className="w-4 h-4" /> Tambah Pengajar
+                </h4>
+                <form onSubmit={handleAddAssignment} className="flex flex-col sm:flex-row gap-4 items-end">
+                     <div className="flex-1 space-y-2 w-full">
+                        <Label>Mata Pelajaran</Label>
+                        <Combobox 
+                            options={mapelOptions}
+                            value={formData.id_mapel}
+                            onChange={(v) => setFormData(prev => ({...prev, id_mapel: v}))}
+                            placeholder="Pilih Mapel..."
+                            searchPlaceholder="Cari mapel..."
+                            modal
+                        />
+                     </div>
+                     <div className="flex-1 space-y-2 w-full">
+                        <Label>Guru Pengampu</Label>
+                        <Combobox 
+                            options={guruOptions}
+                            value={formData.id_guru}
+                            onChange={(v) => setFormData(prev => ({...prev, id_guru: v}))}
+                            placeholder="Pilih Guru..."
+                            searchPlaceholder="Cari guru..."
+                            modal
+                        />
+                     </div>
+                     <Button type="submit">Tambah</Button>
+                </form>
             </div>
-            <div className="space-y-2">
-              <Label>Mata Pelajaran</Label>
-              <Select value={formData.id_mapel} onValueChange={(v) => setFormData({ ...formData, id_mapel: v })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih mata pelajaran" />
-                </SelectTrigger>
-                <SelectContent>
-                  {mapel.map((m) => (
-                    <SelectItem key={m.id} value={m.id.toString()}>{m.mata_pelajaran}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+
+        
+            <div className="flex-1 overflow-auto border rounded-md mt-4">
+                <Table>
+                    <TableHeader>
+                        <TableRow className="bg-muted/50">
+                            <TableHead className="w-[250px]">Mata Pelajaran</TableHead>
+                            <TableHead>Guru Pengampu</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {mapel.map((m) => {
+                            const assignments = currentClassAssignments.filter(a => a.id_mapel === m.id);
+                            return (
+                                <TableRow key={m.id}>
+                                    <TableCell className="font-medium py-3 align-top">{m.mata_pelajaran}</TableCell>
+                                    <TableCell className="py-2">
+                                        {assignments.length > 0 ? (
+                                            <div className="space-y-2">
+                                                {assignments.map((asg) => (
+                                                    <div key={asg.id} className="flex items-center justify-between p-2 rounded-md border bg-card/50 hover:bg-accent/40 transition-colors group">
+                                                        <div className="flex flex-col gap-0.5">
+                                                            <span className="font-medium text-sm">{asg.guru?.nama}</span>
+                                                            <span className="text-xs text-muted-foreground font-mono">NIP. {asg.guru?.nip}</span>
+                                                        </div>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10 transition-all"
+                                                            onClick={() => setDeleteId(asg.id)}
+                                                            title="Hapus Pengajar"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </Button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center gap-2 text-destructive/80 italic text-sm p-2 border border-dashed rounded-md bg-destructive/5">
+                                                <AlertTriangle className="w-4 h-4" />
+                                                Belum ada pengajar
+                                            </div>
+                                        )}
+                                    </TableCell>
+                                </TableRow>
+                            );
+                        })}
+                    </TableBody>
+                </Table>
             </div>
-            <div className="space-y-2">
-              <Label>Kelas</Label>
-              <Select value={formData.id_kelas} onValueChange={(v) => setFormData({ ...formData, id_kelas: v })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih kelas" />
-                </SelectTrigger>
-                <SelectContent>
-                  {kelas.map((k) => (
-                    <SelectItem key={k.id} value={k.id.toString()}>{k.nama_kelas}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex justify-end gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Batal</Button>
-              <Button type="submit">{editingAssignment ? 'Simpan' : 'Tambah'}</Button>
-            </div>
-          </form>
-        </DialogContent>
+         </DialogContent>
       </Dialog>
+
+
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus Pengajar?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Hapus penugasan mengajar.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteAssignment} className="bg-destructive hover:bg-destructive/90">
+              Hapus
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 };

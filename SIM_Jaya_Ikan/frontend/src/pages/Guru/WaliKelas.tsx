@@ -138,8 +138,8 @@ const WaliKelas: React.FC = () => {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <AlertTriangle className="w-12 h-12 text-warning mx-auto mb-4" />
-          <h2 className="text-lg font-semibold">Anda bukan wali kelas</h2>
-          <p className="text-muted-foreground">Halaman ini hanya untuk guru wali kelas</p>
+          <h2 className="text-lg font-semibold">Kelas anda belum ditentukan</h2>
+          <p className="text-muted-foreground">Silahkan hubungi admin untuk plotting kelas</p>
         </div>
       </div>
     );

@@ -21,8 +21,8 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Pencil, Trash2 } from 'lucide-react';
-import { usersApi } from '@/lib/api';
-import { User } from '@/lib/types';
+import { usersApi, guruMapelApi, kelasApi } from '@/lib/api';
+import { User, Kelas, GuruMataPelajaran } from '@/lib/types';
 import { toast } from 'sonner';
 
 const GuruData: React.FC = () => {
@@ -37,6 +37,12 @@ const GuruData: React.FC = () => {
     role: 'guru' as 'admin' | 'guru',
     wali_kelas: false,
   });
+
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [selectedGuru, setSelectedGuru] = useState<User | null>(null);
+  const [detailWaliKelas, setDetailWaliKelas] = useState<Kelas | null>(null);
+  const [detailAssignments, setDetailAssignments] = useState<GuruMataPelajaran[]>([]);
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
 
   const loadData = async () => {
     try {
@@ -55,6 +61,18 @@ const GuruData: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    const isDuplicateNip = users.some(
+      (u) => 
+        u.nip === formData.nip && 
+        (!editingUser || u.id !== editingUser.id)
+    );
+
+    if (isDuplicateNip) {
+      toast.error('NIP sudah terdaftar');
+      return;
+    }
+
     try {
       const safeWaliKelas = formData.role === 'admin' ? false : (formData.wali_kelas || false);
 
@@ -151,7 +169,7 @@ const GuruData: React.FC = () => {
       id: 'edit',
       header: 'Edit',
       cell: ({ row }) => (
-        <Button size="sm" variant="ghost" onClick={() => handleEdit(row.original)}>
+      <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); handleEdit(row.original); }}>
           <Pencil className="w-4 h-4" />
         </Button>
       ),
@@ -160,12 +178,35 @@ const GuruData: React.FC = () => {
       id: 'delete',
       header: 'Delete',
       cell: ({ row }) => (
-        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDelete(row.original.id)}>
+        <Button size="sm" variant="ghost" className="text-destructive" onClick={(e) => { e.stopPropagation(); handleDelete(row.original.id); }}>
           <Trash2 className="w-4 h-4" />
         </Button>
       ),
     },
   ];
+
+  const handleViewDetail = async (user: User) => {
+      setSelectedGuru(user);
+      setIsDetailOpen(true);
+      setIsLoadingDetail(true);
+      try {
+          const [allKelas, allAssignments] = await Promise.all([
+              kelasApi.getAll(),
+              guruMapelApi.getAll()
+          ]);
+
+          const waliKelas = allKelas.find(k => k.id_guru === user.id) || null;
+          const assignments = allAssignments.filter(a => a.id_guru === user.id);
+
+          setDetailWaliKelas(waliKelas);
+          setDetailAssignments(assignments);
+      } catch (error) {
+          console.error("Failed to load details", error);
+          toast.error("Gagal memuat detail user");
+      } finally {
+          setIsLoadingDetail(false);
+      }
+  };
 
   return (
     <div className="space-y-6">
@@ -185,6 +226,7 @@ const GuruData: React.FC = () => {
         columns={columns}
         data={users}
         searchKey="nama"
+        onRowClick={(row) => handleViewDetail(row)}
       />
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -253,6 +295,74 @@ const GuruData: React.FC = () => {
               <Button type="submit">{editingUser ? 'Simpan' : 'Tambah'}</Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Detail User</DialogTitle>
+          </DialogHeader>
+          {selectedGuru && (
+            <div className="space-y-6">
+              <div className="flex items-center gap-4">
+                 <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg">
+                    {selectedGuru.nama.substring(0, 2).toUpperCase()}
+                 </div>
+                 <div>
+                    <h3 className="font-semibold text-lg">{selectedGuru.nama}</h3>
+                    <p className="text-sm text-muted-foreground">NIP. {selectedGuru.nip}</p>
+                 </div>
+              </div>
+
+              {selectedGuru.role === 'guru' && (
+              <div className="space-y-4">
+                 <div className="p-4 rounded-lg border bg-muted/30">
+                    <h4 className="text-sm font-medium mb-2 text-muted-foreground">Informasi Wali Kelas</h4>
+                    {isLoadingDetail ? (
+                        <p className="text-sm">Memuat...</p>
+                    ) : selectedGuru.wali_kelas ? (
+                        detailWaliKelas ? (
+                            <p className="text-base font-medium">Wali Kelas {detailWaliKelas.nama_kelas}</p>
+                        ) : (
+                            <p className="text-sm text-muted-foreground italic">Belum ditentukan</p>
+                        )
+                    ) : (
+                        <p className="text-sm text-muted-foreground italic">Bukan Wali Kelas</p>
+                    )}
+                 </div>
+
+                 <div className="rounded-lg border">
+                    <div className="p-3 border-b bg-muted/30">
+                        <h4 className="text-sm font-medium">Daftar Mengajar</h4>
+                    </div>
+                    <div className="p-2 max-h-[200px] overflow-auto">
+                        {isLoadingDetail ? (
+                            <div className="p-4 text-center text-sm">Memuat data...</div>
+                        ) : detailAssignments.length > 0 ? (
+                            <ul className="space-y-1">
+                                {detailAssignments.map((a) => (
+                                    <li key={a.id} className="text-sm p-2 hover:bg-muted/50 rounded flex justify-between items-center">
+                                        <span>{a.mapel?.mata_pelajaran}</span>
+                                        <Badge variant="outline" className="text-xs">Kelas {a.kelas?.nama_kelas}</Badge>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <div className="p-4 text-center text-sm text-muted-foreground">
+                                Belum ada penugasan mengajar
+                            </div>
+                        )}
+                    </div>
+                 </div>
+              </div>
+              )}
+              
+              <div className="flex justify-end">
+                <Button onClick={() => setIsDetailOpen(false)}>Tutup</Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

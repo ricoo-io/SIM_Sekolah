@@ -86,6 +86,18 @@ const SiswaData: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    const isDuplicateNis = siswa.some(
+      (s) => 
+        s.nis === formData.nis && 
+        (!editingSiswa || s.id !== editingSiswa.id)
+    );
+
+    if (isDuplicateNis) {
+      toast.error('NIS sudah terdaftar');
+      return;
+    }
+
     try {
       if (editingSiswa) {
         await siswaApi.update(editingSiswa.id, {

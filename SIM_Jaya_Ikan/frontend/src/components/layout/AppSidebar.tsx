@@ -29,7 +29,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
   { label: 'Data Siswa', href: '/siswa', icon: <GraduationCap className="w-5 h-5" />, roles: ['admin'] },
-  { label: 'Data Guru', href: '/guru', icon: <Users className="w-5 h-5" />, roles: ['admin'] },
+  { label: 'Data User', href: '/guru', icon: <Users className="w-5 h-5" />, roles: ['admin'] },
   { label: 'Data Kelas', href: '/kelas', icon: <School className="w-5 h-5" />, roles: ['admin'] },
   { label: 'Mata Pelajaran', href: '/mapel', icon: <BookOpen className="w-5 h-5" />, roles: ['admin'] },
   { label: 'Assign Guru', href: '/assign-guru', icon: <UserCog className="w-5 h-5" />, roles: ['admin'] },
