@@ -15,7 +15,7 @@ import { ArrowLeft, Save, User, BookOpen, GraduationCap, TrendingUp } from 'luci
 import { siswaApi, penilaianApi, mapelApi, rapotApi } from '@/lib/api';
 import { Siswa, Penilaian, MataPelajaran, Rapot, Semester } from '@/lib/types';
 import { toast } from 'sonner';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 const DetailSiswa: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -118,7 +118,6 @@ const DetailSiswa: React.FC = () => {
       
       toast.success('Data absensi dan catatan berhasil disimpan');
       
-      // Update local state without full reload
       const updatedRapots = await rapotApi.getBySiswa(parseInt(id));
       setAllRapots(updatedRapots);
       
@@ -148,7 +147,6 @@ const DetailSiswa: React.FC = () => {
           return {
               period: key,
               nilai: Math.round(avg),
-              // Helper for sorting
               year: parseInt(key.split('/')[0]),
               isGenap: key.includes('genap')
           };
@@ -257,38 +255,55 @@ const DetailSiswa: React.FC = () => {
                     Grafik Perkembangan Akademik
                 </CardTitle>
             </CardHeader>
-            <CardContent>
-                <div className="h-[300px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                            <XAxis 
-                                dataKey="period" 
-                                tick={{fontSize: 12}} 
-                                tickFormatter={(val) => {
-                                    const [year, sem] = val.split(' ');
-                                    return `${year.split('/')[0]} ${sem === 'ganjil' ? 'Ganjil' : 'Genap'}`;
-                                }}
-                            />
-                            <YAxis domain={[0, 100]} />
-                            <Tooltip 
-                                contentStyle={{ borderRadius: '8px' }}
-                                formatter={(val: number) => [`${val}`, 'Rata-rata Nilai']}
-                                labelFormatter={(label) => `Periode: ${label}`}
-                            />
-                            <Legend />
-                            <Line 
-                                type="monotone" 
-                                dataKey="nilai" 
-                                stroke="hsl(var(--primary))" 
-                                strokeWidth={2} 
-                                activeDot={{ r: 8 }} 
-                                name="Rata-rata Nilai Akhir"
-                            />
-                        </LineChart>
-                    </ResponsiveContainer>
-                </div>
-            </CardContent>
+             <CardContent>
+                 <div className="h-[300px] w-full">
+                     <ResponsiveContainer width="100%" height="100%">
+                         <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                             <defs>
+                                 <linearGradient id="colorNilai" x1="0" y1="0" x2="0" y2="1">
+                                     <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                                     <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                                 </linearGradient>
+                             </defs>
+                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                             <XAxis 
+                                 dataKey="period" 
+                                 tick={{fontSize: 12}} 
+                                 tickLine={false}
+                                 axisLine={false}
+                                 tickFormatter={(val) => {
+                                     const [year, sem] = val.split(' ');
+                                     return `${year.split('/')[0]} ${sem === 'ganjil' ? 'Ganjil' : 'Genap'}`;
+                                 }}
+                             />
+                             <YAxis 
+                                 domain={[0, 100]} 
+                                 tickLine={false}
+                                 axisLine={false}
+                                 tick={{fontSize: 12}}
+                             />
+                             <Tooltip 
+                                 contentStyle={{ borderRadius: '8px', border: '1px solid hsl(var(--border))', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                                 formatter={(val: number) => [`${val}`, 'Rata-rata Nilai']}
+                                 labelFormatter={(label) => `Periode: ${label}`}
+                                 cursor={{ stroke: 'hsl(var(--primary))', strokeWidth: 1, strokeDasharray: '4 4' }}
+                             />
+                             <Legend wrapperStyle={{ paddingTop: '20px' }}/>
+                             <Area 
+                                 type="monotone" 
+                                 dataKey="nilai" 
+                                 stroke="hsl(var(--primary))" 
+                                 strokeWidth={3} 
+                                 fillOpacity={1} 
+                                 fill="url(#colorNilai)" 
+                                 activeDot={{ r: 6, strokeWidth: 0, fill: "hsl(var(--primary))" }} 
+                                 dot={{ r: 4, fill: "hsl(var(--background))", stroke: "hsl(var(--primary))", strokeWidth: 2 }}
+                                 name="Rata-rata Nilai Akhir"
+                             />
+                         </AreaChart>
+                     </ResponsiveContainer>
+                 </div>
+             </CardContent>
         </Card>
       )}
 

@@ -32,7 +32,7 @@ const navItems: NavItem[] = [
   { label: 'Data User', href: '/guru', icon: <Users className="w-5 h-5" />, roles: ['admin'] },
   { label: 'Data Kelas', href: '/kelas', icon: <School className="w-5 h-5" />, roles: ['admin'] },
   { label: 'Mata Pelajaran', href: '/mapel', icon: <BookOpen className="w-5 h-5" />, roles: ['admin'] },
-  { label: 'Assign Guru', href: '/assign-guru', icon: <UserCog className="w-5 h-5" />, roles: ['admin'] },
+  { label: 'Plotting Guru', href: '/assign-guru', icon: <UserCog className="w-5 h-5" />, roles: ['admin'] },
   { label: 'Input Nilai', href: '/nilai', icon: <ClipboardList className="w-5 h-5" />, roles: ['guru'] },
   { label: 'Wali Kelas', href: '/wali-kelas', icon: <FileText className="w-5 h-5" />, roles: ['guru'], waliKelasOnly: true },
 ];
