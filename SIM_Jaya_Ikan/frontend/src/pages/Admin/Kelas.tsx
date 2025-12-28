@@ -28,10 +28,11 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Pencil, Trash2, Eye, Users, UserPlus } from 'lucide-react';
-import { kelasApi, usersApi, siswaApi } from '@/lib/api';
-import { Kelas, User, Tingkat, Siswa } from '@/lib/types';
+import { kelasApi, usersApi, siswaApi, guruMapelApi } from '@/lib/api';
+import { Kelas, User, Tingkat, Siswa, GuruMataPelajaran } from '@/lib/types';
 import { toast } from 'sonner';
 import { ColumnDef } from '@tanstack/react-table';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 const NO_WALI = 'none';
 
@@ -65,6 +66,8 @@ const KelasData: React.FC = () => {
   const [selectedKelasForDetail, setSelectedKelasForDetail] = useState<Kelas | null>(null);
   const [studentsInClass, setStudentsInClass] = useState<Siswa[]>([]);
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);
+  const [guruMapelInClass, setGuruMapelInClass] = useState<GuruMataPelajaran[]>([]);
+  const [isLoadingGuruMapel, setIsLoadingGuruMapel] = useState(false);
 
   
   const [isAssignOpen, setIsAssignOpen] = useState(false);
@@ -170,15 +173,26 @@ const KelasData: React.FC = () => {
     setSelectedKelasForDetail(item);
     setIsDetailOpen(true);
     setIsLoadingStudents(true);
+    setIsLoadingGuruMapel(true);
     try {
-      const students = await siswaApi.getByKelas(item.id);
+      const [students, allGuruMapel] = await Promise.all([
+        siswaApi.getByKelas(item.id),
+        guruMapelApi.getAll(),
+      ]);
       setStudentsInClass(students);
+      setGuruMapelInClass(allGuruMapel.filter(gm => gm.id_kelas === item.id));
     } catch (error) {
-      console.error('Failed to fetch students:', error);
-      toast.error('Gagal memuat data siswa');
+      console.error('Failed to fetch detail data:', error);
+      if ((error as any)?.response?.config?.url?.includes('/siswa')) {
+        toast.error('Gagal memuat data siswa');
+      } else {
+        toast.error('Gagal memuat data guru & mapel');
+      }
       setStudentsInClass([]);
+      setGuruMapelInClass([]);
     } finally {
       setIsLoadingStudents(false);
+      setIsLoadingGuruMapel(false);
     }
   };
 
@@ -424,63 +438,121 @@ const KelasData: React.FC = () => {
       
       {/* Dialog Detail Siswa */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
+        <DialogContent className="max-w-6xl max-h-[90vh] flex flex-col">
           <DialogHeader className="border-b pb-4">
             <DialogTitle className="flex items-center gap-2 text-xl">
               <Users className="w-5 h-5 text-primary" />
-              Daftar Siswa - Kelas {selectedKelasForDetail?.nama_kelas}
+              Data Kelas - Kelas {selectedKelasForDetail?.nama_kelas}
             </DialogTitle>
           </DialogHeader>
-          
-          <div className="flex-1 overflow-auto mt-4">
-            {isLoadingStudents ? (
-              <div className="flex flex-col items-center justify-center h-40 space-y-3 text-muted-foreground">
-                <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
-                <p>Memuat data siswa...</p>
+          <div className="flex-1 overflow-auto space-y-4 mt-2">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <span>Daftar Guru</span>
               </div>
-            ) : studentsInClass.length > 0 ? (
-              <div className="border rounded-md">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/50">
-                      <TableHead className="w-[50px]">No</TableHead>
-                      <TableHead className="w-[120px]">NIS</TableHead>
-                      <TableHead>Nama Siswa</TableHead>
-                      <TableHead className="w-[150px]">Jenis Kelamin</TableHead>
-                      <TableHead>Alamat</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {studentsInClass.map((siswa, index) => {
-                      const isL = siswa.jenis_kelamin === 'L';
-                      return (
-                        <TableRow key={siswa.id} className="hover:bg-muted/50 transition-colors">
-                          <TableCell className="text-center">{index + 1}</TableCell>
-                          <TableCell className="font-medium font-mono text-xs">{siswa.nis}</TableCell>
-                          <TableCell className="font-medium">{siswa.nama}</TableCell>
-                          <TableCell>
-                            <Badge 
-                              variant="outline" 
-                              className={isL ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-pink-50 text-pink-700 border-pink-200"}
-                            >
-                              {isL ? 'Laki-laki' : 'Perempuan'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">{siswa.alamat}</TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
+                  {isLoadingGuruMapel ? (
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                      <div className="w-3.5 h-3.5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                      <span>Memuat guru & mapel...</span>
+                    </div>
+                  ) : (
+                    <div className="border rounded-md">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-background sticky top-0 z-10">
+                            <TableHead className="py-1.5 text-xs">Nama</TableHead>
+                            <TableHead className="w-[120px] py-1.5 text-xs">Peran</TableHead>
+                            <TableHead className="py-1.5 text-xs">Mapel</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          <TableRow className="bg-primary/10 hover:bg-primary/15">
+                            <TableCell className="text-sm font-bold truncate max-w-[280px]">
+                              {selectedKelasForDetail?.wali_kelas?.nama || (
+                                <span className="text-muted-foreground">Belum ada</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-xs font-semibold text-primary">Wali Kelas</TableCell>
+                            <TableCell className="text-xs text-muted-foreground">-</TableCell>
+                          </TableRow>
+                          {guruMapelInClass.map((gm) => (
+                            <TableRow key={gm.id}>
+                              <TableCell className="text-sm truncate max-w-[280px]" title={gm.guru?.nama || ''}>{gm.guru?.nama}</TableCell>
+                              <TableCell className="text-xs">Pengajar</TableCell>
+                              <TableCell className="text-xs truncate max-w-[280px]" title={gm.mapel?.mata_pelajaran || ''}>{gm.mapel?.mata_pelajaran}</TableCell>
+                            </TableRow>
+                          ))}
+                          {guruMapelInClass.length === 0 && (
+                            <TableRow>
+                              <TableCell colSpan={3} className="text-center text-muted-foreground text-sm py-2">
+                                Tidak ada guru & mapel terdaftar
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </div>
+
+            <div>
+              <div className="flex items-center gap-2 text-sm font-semibold mb-2">
+                <span>Daftar Siswa</span>
+                {!isLoadingStudents && (
+                  <Badge variant="secondary">{studentsInClass.length} Siswa</Badge>
+                )}
               </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-40 text-muted-foreground bg-muted/20 rounded-md border border-dashed">
-                <p>Tidak ada siswa di kelas ini</p>
+              <div>
+                  {isLoadingStudents ? (
+                    <div className="flex flex-col items-center justify-center h-40 space-y-3 text-muted-foreground">
+                      <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+                      <p>Memuat data siswa...</p>
+                    </div>
+                  ) : studentsInClass.length > 0 ? (
+                    <div className="border rounded-md">
+                       <Table>
+                        <TableHeader>
+                           <TableRow className="bg-background sticky top-0 z-10">
+                             <TableHead className="w-[50px] py-2 text-xs">No</TableHead>
+                             <TableHead className="w-[100px] py-2 text-xs">NIS</TableHead>
+                             <TableHead className="py-2 text-xs">Nama</TableHead>
+                             <TableHead className="w-[110px] py-2 text-xs">JK</TableHead>
+                             <TableHead className="py-2 text-xs">Alamat</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {studentsInClass.map((siswa, index) => {
+                            const isL = siswa.jenis_kelamin === 'L';
+                            return (
+                               <TableRow key={siswa.id} className="hover:bg-muted/50 transition-colors">
+                                 <TableCell className="text-center py-1.5 text-sm">{index + 1}</TableCell>
+                                 <TableCell className="font-mono py-1.5 text-xs">{siswa.nis}</TableCell>
+                                 <TableCell className="font-medium py-1.5 text-sm">{siswa.nama}</TableCell>
+                                 <TableCell className="py-1.5">
+                                   <Badge 
+                                     variant="outline" 
+                                     className={isL ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-pink-50 text-pink-700 border-pink-200"}
+                                   >
+                                     {isL ? 'L' : 'P'}
+                                   </Badge>
+                                 </TableCell>
+                                 <TableCell className="text-muted-foreground py-1.5 text-sm truncate max-w-[280px]" title={siswa.alamat}>{siswa.alamat}</TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-40 text-muted-foreground bg-muted/20 rounded-md border border-dashed">
+                      <p>Tidak ada siswa di kelas ini</p>
+                    </div>
+                  )}
               </div>
-            )}
+            </div>
           </div>
           
-          <div className="flex justify-end pt-4 border-t mt-2">
+          <div className="flex justify-end gap-2 pt-4 border-t">
             <Button onClick={() => setIsDetailOpen(false)}>Tutup</Button>
           </div>
         </DialogContent>
@@ -534,11 +606,11 @@ const KelasData: React.FC = () => {
             {filteredSiswaForAssign.length > 0 ? (
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead className="w-[50px]"></TableHead>
-                    <TableHead className="w-[120px]">NIS</TableHead>
-                    <TableHead>Nama Siswa</TableHead>
-                    <TableHead className="w-[150px]">Kelas Sekarang</TableHead>
+                  <TableRow className="bg-background sticky top-0 z-10">
+                    <TableHead className="w-[44px] py-2"></TableHead>
+                    <TableHead className="w-[100px] py-2 text-xs">NIS</TableHead>
+                    <TableHead className="py-2 text-xs">Nama Siswa</TableHead>
+                    <TableHead className="w-[120px] py-2 text-xs">Kelas Sekarang</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -548,15 +620,15 @@ const KelasData: React.FC = () => {
                       className="cursor-pointer hover:bg-muted/50"
                       onClick={() => toggleSiswaSelection(siswa.id)}
                     >
-                      <TableCell>
+                      <TableCell className="py-1.5">
                         <Checkbox 
                           checked={selectedSiswaIds.has(siswa.id)}
                           onCheckedChange={() => toggleSiswaSelection(siswa.id)}
                         />
                       </TableCell>
-                      <TableCell className="font-mono text-xs">{siswa.nis}</TableCell>
-                      <TableCell className="font-medium">{siswa.nama}</TableCell>
-                      <TableCell>
+                      <TableCell className="font-mono text-xs py-1.5">{siswa.nis}</TableCell>
+                      <TableCell className="font-medium py-1.5 text-sm truncate max-w-[220px]" title={siswa.nama}>{siswa.nama}</TableCell>
+                      <TableCell className="py-1.5 text-sm">
                         {siswa.kelas?.nama_kelas || <span className="text-muted-foreground">Belum ada</span>}
                       </TableCell>
                     </TableRow>
