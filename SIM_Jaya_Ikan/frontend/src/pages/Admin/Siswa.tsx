@@ -260,17 +260,8 @@ const SiswaData: React.FC = () => {
       header: 'Kontak Wali',
     },
     {
-      id: 'nilai',
-      header: 'Nilai',
-      cell: ({ row }) => (
-        <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); handleViewNilai(row.original); }}>
-          <FileText className="w-4 h-4" />
-        </Button>
-      ),
-    },
-    {
       id: 'actions',
-      header: 'Detail',
+      header: () => 'Data',
       cell: ({ row }) => (
         <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); handleViewDetail(row.original); }}>
           <User className="w-4 h-4" />
