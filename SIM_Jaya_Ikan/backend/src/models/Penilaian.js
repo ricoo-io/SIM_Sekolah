@@ -41,7 +41,7 @@ const Penilaian = sequelize.define('Penilaian', {
   tahun_ajaran: {
     type: DataTypes.STRING(255),
     allowNull: false,
-    defaultValue: '2024/2025'
+    defaultValue: '2023/2024'
   },
   nilai_harian_1: {
     type: DataTypes.DECIMAL(5, 2),

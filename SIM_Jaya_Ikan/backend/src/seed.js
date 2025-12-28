@@ -82,19 +82,27 @@ const seed = async () => {
            });
 
            if (guruMapel) {
-             const grades = PenilaianFactory.define(Penilaian).definition();
+             const years = ['2023/2024', '2024/2025', '2025/2026'];
+             const semesters = ['ganjil', 'genap'];
 
-             const totalHarian = (grades.nilai_harian_1 + grades.nilai_harian_2 + grades.nilai_harian_3 + grades.nilai_harian_4 + grades.nilai_harian_5) / 5;
-             const akhir = (totalHarian + grades.nilai_UTS + grades.nilai_UAS) / 3;
-             
-             await Penilaian.create({
-               ...grades,
-               nilai_Akhir: Math.round(akhir),
-               id_siswa: siswa.id,
-               id_mapel: mapel.id,
-               id_guru: guruMapel.id_guru,
-               semester: 'ganjil' 
-             });
+             for (const year of years) {
+                for (const sem of semesters) {
+                     const grades = PenilaianFactory.define(Penilaian).definition();
+
+                     const totalHarian = (grades.nilai_harian_1 + grades.nilai_harian_2 + grades.nilai_harian_3 + grades.nilai_harian_4 + grades.nilai_harian_5) / 5;
+                     const akhir = (totalHarian + grades.nilai_UTS + grades.nilai_UAS) / 3;
+                     
+                     await Penilaian.create({
+                       ...grades,
+                       nilai_Akhir: Math.round(akhir),
+                       id_siswa: siswa.id,
+                       id_mapel: mapel.id,
+                       id_guru: guruMapel.id_guru,
+                       semester: sem,
+                       tahun_ajaran: year
+                     });
+                }
+             }
            }
         }
       }

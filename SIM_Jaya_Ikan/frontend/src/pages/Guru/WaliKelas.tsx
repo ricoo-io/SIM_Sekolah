@@ -34,7 +34,7 @@ const WaliKelas: React.FC = () => {
   const [penilaian, setPenilaian] = useState<Penilaian[]>([]);
   const [rapot, setRapot] = useState<Record<number, Rapot>>({});
   const [semester, setSemester] = useState<Semester>('ganjil');
-  const [tahunAjaran, setTahunAjaran] = useState<string>('2024/2025');
+  const [tahunAjaran, setTahunAjaran] = useState<string>('2023/2024');
   const [isLoading, setIsLoading] = useState(true);
 
   const loadData = async () => {
@@ -165,11 +165,12 @@ const WaliKelas: React.FC = () => {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="2023/2024">2023/2024</SelectItem>
               <SelectItem value="2024/2025">2024/2025</SelectItem>
               <SelectItem value="2025/2026">2025/2026</SelectItem>
             </SelectContent>
           </Select>
-
+          
           <Select value={semester} onValueChange={(v: Semester) => setSemester(v)}>
             <SelectTrigger className="w-[140px]">
               <SelectValue />
@@ -182,7 +183,6 @@ const WaliKelas: React.FC = () => {
         </div>
       </PageHeader>
 
-      {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <StatsCard title="Jumlah Siswa" value={siswa.length} icon={Users} variant="primary" />
         <StatsCard
@@ -199,7 +199,6 @@ const WaliKelas: React.FC = () => {
         <StatsCard title="NA Tidak Tuntas KKM" value={getStudentsBelowKkm()} icon={AlertTriangle} variant="info" />
       </div>
 
-      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-card rounded-xl border p-5 shadow-card">
           <h3 className="font-semibold text-foreground mb-4">Peringkat Kelas</h3>
@@ -271,7 +270,6 @@ const WaliKelas: React.FC = () => {
         </div>
       </div>
 
-      {/* Daftar Siswa */}
       <div className="bg-card rounded-xl border shadow-card overflow-hidden">
         <div className="p-4 border-b">
           <h3 className="font-semibold text-foreground">Daftar Siswa</h3>

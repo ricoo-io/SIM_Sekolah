@@ -11,10 +11,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Save, User, BookOpen, GraduationCap } from 'lucide-react';
+import { ArrowLeft, Save, User, BookOpen, GraduationCap, TrendingUp } from 'lucide-react';
 import { siswaApi, penilaianApi, mapelApi, rapotApi } from '@/lib/api';
 import { Siswa, Penilaian, MataPelajaran, Rapot, Semester } from '@/lib/types';
 import { toast } from 'sonner';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 const DetailSiswa: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -24,7 +25,8 @@ const DetailSiswa: React.FC = () => {
   const [tahunAjaran, setTahunAjaran] = useState<string>('2024/2025');
   const [siswa, setSiswa] = useState<Siswa | null>(null);
   const [mapel, setMapel] = useState<MataPelajaran[]>([]);
-  const [penilaian, setPenilaian] = useState<Penilaian[]>([]);
+  const [allPenilaian, setAllPenilaian] = useState<Penilaian[]>([]);
+  const [allRapots, setAllRapots] = useState<Rapot[]>([]);
   const [rapot, setRapot] = useState<Rapot | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -54,28 +56,8 @@ const DetailSiswa: React.FC = () => {
 
       setSiswa(siswaData);
       setMapel(mapelList);
-      setPenilaian(penilaianList.filter(p => p.semester === semester));
-      
-      setPenilaian(penilaianList.filter(p => p.semester === semester && p.tahun_ajaran === tahunAjaran));
-      
-      const currentRapot = rapotList.find(r => 
-        r.id_siswa === studentId && 
-        r.semester.toLowerCase() === semester.toLowerCase() &&
-        r.tahun_ajaran === tahunAjaran
-      );
-      
-      setRapot(currentRapot || null);
-
-      if (currentRapot) {
-        setAbsensiForm({
-          sakit: currentRapot.sakit,
-          izin: currentRapot.izin,
-          alpha: currentRapot.alpha,
-          catatan_wali_kelas: currentRapot.catatan_wali_kelas || '',
-        });
-      } else {
-        setAbsensiForm({ sakit: 0, izin: 0, alpha: 0, catatan_wali_kelas: '' });
-      }
+      setAllPenilaian(penilaianList);
+      setAllRapots(rapotList);
 
     } catch (error) {
       console.error('Error loading student details:', error);
@@ -87,7 +69,31 @@ const DetailSiswa: React.FC = () => {
 
   useEffect(() => {
     loadData();
-  }, [id, semester, tahunAjaran]);
+  }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    const studentId = parseInt(id);
+    
+    const currentRapot = allRapots.find(r => 
+      r.id_siswa === studentId && 
+      r.semester.toLowerCase() === semester.toLowerCase() &&
+      r.tahun_ajaran === tahunAjaran
+    );
+    
+    setRapot(currentRapot || null);
+
+    if (currentRapot) {
+      setAbsensiForm({
+        sakit: currentRapot.sakit,
+        izin: currentRapot.izin,
+        alpha: currentRapot.alpha,
+        catatan_wali_kelas: currentRapot.catatan_wali_kelas || '',
+      });
+    } else {
+      setAbsensiForm({ sakit: 0, izin: 0, alpha: 0, catatan_wali_kelas: '' });
+    }
+  }, [allRapots, semester, tahunAjaran, id]);
 
   const handleSaveAbsensi = async () => {
     if (!siswa || !id) return;
@@ -111,13 +117,46 @@ const DetailSiswa: React.FC = () => {
       }
       
       toast.success('Data absensi dan catatan berhasil disimpan');
-      loadData();
+      
+      // Update local state without full reload
+      const updatedRapots = await rapotApi.getBySiswa(parseInt(id));
+      setAllRapots(updatedRapots);
+      
     } catch (error: any) {
       console.error('Error saving absensi:', error);
       const errorMessage = error?.response?.data?.message || 'Gagal menyimpan data';
       toast.error(errorMessage);
     }
   };
+
+  const filteredPenilaian = React.useMemo(() => {
+     return allPenilaian.filter(p => p.semester === semester && p.tahun_ajaran === tahunAjaran);
+  }, [allPenilaian, semester, tahunAjaran]);
+
+  const chartData = React.useMemo(() => {
+      const groups: Record<string, number[]> = {};
+      
+      allPenilaian.forEach(p => {
+          const key = `${p.tahun_ajaran} ${p.semester}`;
+          if (!groups[key]) groups[key] = [];
+          if (p.nilai_Akhir) groups[key].push(Number(p.nilai_Akhir));
+      });
+
+      return Object.keys(groups).map(key => {
+          const scores = groups[key];
+          const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+          return {
+              period: key,
+              nilai: Math.round(avg),
+              // Helper for sorting
+              year: parseInt(key.split('/')[0]),
+              isGenap: key.includes('genap')
+          };
+      }).sort((a, b) => {
+          if (a.year !== b.year) return a.year - b.year;
+          return (a.isGenap ? 1 : 0) - (b.isGenap ? 1 : 0);
+      });
+  }, [allPenilaian]);
 
   if (isLoading) {
       return (
@@ -137,7 +176,7 @@ const DetailSiswa: React.FC = () => {
   }
 
   const getAverageScore = () => {
-      const validScores = penilaian
+      const validScores = filteredPenilaian
         .map(p => Number(p.nilai_Akhir))
         .filter(v => Number.isFinite(v));
       
@@ -156,27 +195,6 @@ const DetailSiswa: React.FC = () => {
                <h1 className="text-2xl font-bold tracking-tight">Detail Siswa</h1>
                <p className="text-muted-foreground">Detail nilai dan akademik siswa</p>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Select value={tahunAjaran} onValueChange={setTahunAjaran}>
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="2024/2025">2024/2025</SelectItem>
-                <SelectItem value="2025/2026">2025/2026</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={semester} onValueChange={(v: Semester) => setSemester(v)}>
-              <SelectTrigger className="w-28">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ganjil">Ganjil</SelectItem>
-                <SelectItem value="genap">Genap</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
       </div>
 
@@ -231,13 +249,80 @@ const DetailSiswa: React.FC = () => {
            </Card>
       </div>
 
+      { chartData.length > 0 && (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                    <TrendingUp className="w-5 h-5 text-primary" />
+                    Grafik Perkembangan Akademik
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className="h-[300px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                            <XAxis 
+                                dataKey="period" 
+                                tick={{fontSize: 12}} 
+                                tickFormatter={(val) => {
+                                    const [year, sem] = val.split(' ');
+                                    return `${year.split('/')[0]} ${sem === 'ganjil' ? 'Ganjil' : 'Genap'}`;
+                                }}
+                            />
+                            <YAxis domain={[0, 100]} />
+                            <Tooltip 
+                                contentStyle={{ borderRadius: '8px' }}
+                                formatter={(val: number) => [`${val}`, 'Rata-rata Nilai']}
+                                labelFormatter={(label) => `Periode: ${label}`}
+                            />
+                            <Legend />
+                            <Line 
+                                type="monotone" 
+                                dataKey="nilai" 
+                                stroke="hsl(var(--primary))" 
+                                strokeWidth={2} 
+                                activeDot={{ r: 8 }} 
+                                name="Rata-rata Nilai Akhir"
+                            />
+                        </LineChart>
+                    </ResponsiveContainer>
+                </div>
+            </CardContent>
+        </Card>
+      )}
+
        <div className="space-y-6">
           <Card>
-                  <CardHeader className="pb-3">
+                  <CardHeader className="pb-3 flex flex-row items-center justify-between">
                       <CardTitle className="flex items-center gap-2 text-lg">
                           <BookOpen className="w-5 h-5 text-primary" />
                           Rekap Nilai
                       </CardTitle>
+                      
+                       <div className="flex items-center gap-2">
+                        <Select value={tahunAjaran} onValueChange={setTahunAjaran}>
+                          <SelectTrigger className="w-32 h-9">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="2023/2024">2023/2024</SelectItem>
+                            <SelectItem value="2024/2025">2024/2025</SelectItem>
+                            <SelectItem value="2025/2026">2025/2026</SelectItem>
+                          </SelectContent>
+                        </Select>
+
+                        <Select value={semester} onValueChange={(v: Semester) => setSemester(v)}>
+                          <SelectTrigger className="w-28 h-9">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="ganjil">Ganjil</SelectItem>
+                            <SelectItem value="genap">Genap</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
                   </CardHeader>
               <CardContent className="space-y-6">
                   <div className="border rounded-lg overflow-x-auto">
@@ -260,7 +345,7 @@ const DetailSiswa: React.FC = () => {
                           </TableHeader>
                           <TableBody>
                               {mapel.map(m => {
-                                  const nilai = penilaian.find(p => p.id_mapel === m.id);
+                                  const nilai = filteredPenilaian.find(p => p.id_mapel === m.id);
                                   const nilaiAkhir = nilai?.nilai_Akhir;
                                   const isTuntas = nilaiAkhir !== null && nilaiAkhir !== undefined && nilaiAkhir >= m.kkm;
                                   
@@ -325,7 +410,7 @@ const DetailSiswa: React.FC = () => {
                           let remedial = 0;
 
                           mapel.forEach(m => {
-                              const nilai = penilaian.find(p => p.id_mapel === m.id);
+                              const nilai = filteredPenilaian.find(p => p.id_mapel === m.id);
                               const nilaiAkhir = nilai?.nilai_Akhir;
 
                               const hasAllComponents =
@@ -374,71 +459,68 @@ const DetailSiswa: React.FC = () => {
                           );
                       })()}
                   </div>
+
+                  {kelasWali && siswa.id_kelas === kelasWali.id && (
+                    <>
+                      <div className="border-t pt-6 mt-6">
+                        <div className="flex items-center gap-2 text-lg font-semibold mb-4">
+                            <GraduationCap className="w-5 h-5 text-primary" />
+                             Absensi & Catatan
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                             <div className="grid grid-cols-3 gap-4 md:col-span-1">
+                                <div className="space-y-2">
+                                    <Label className="text-xs">Sakit</Label>
+                                    <Input 
+                                        type="number" 
+                                        min={0}
+                                        value={absensiForm.sakit}
+                                        onChange={e => setAbsensiForm({...absensiForm, sakit: e.target.value})}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-xs">Izin</Label>
+                                    <Input 
+                                        type="number" 
+                                        min={0}
+                                        value={absensiForm.izin}
+                                        onChange={e => setAbsensiForm({...absensiForm, izin: e.target.value})}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-xs">Alpha</Label>
+                                    <Input 
+                                        type="number" 
+                                        min={0}
+                                        value={absensiForm.alpha}
+                                        onChange={e => setAbsensiForm({...absensiForm, alpha: e.target.value})}
+                                    />
+                                </div>
+                             </div>
+                             
+                             <div className="space-y-2 md:col-span-2">
+                                <Label>Catatan Wali Kelas</Label>
+                                <Textarea 
+                                    placeholder="Catatan perkembangan siswa..." 
+                                    rows={3}
+                                    value={absensiForm.catatan_wali_kelas}
+                                    onChange={e => setAbsensiForm({...absensiForm, catatan_wali_kelas: e.target.value})}
+                                />
+                             </div>
+                         </div>
+      
+                         <div className="flex justify-end mt-4">
+                             <Button onClick={handleSaveAbsensi}>
+                                <Save className="w-4 h-4 mr-2" />
+                                Simpan Data
+                             </Button>
+                         </div>
+                      </div>
+                    </>
+                  )}
               </CardContent>
           </Card>
-
-      
-          {kelasWali && siswa.id_kelas === kelasWali.id && (
-           <Card>
-              <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                      <GraduationCap className="w-5 h-5 text-primary" />
-                       Absensi & Catatan
-                  </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                       <div className="grid grid-cols-3 gap-4 md:col-span-1">
-                          <div className="space-y-2">
-                              <Label className="text-xs">Sakit</Label>
-                              <Input 
-                                  type="number" 
-                                  min={0}
-                                  value={absensiForm.sakit}
-                                  onChange={e => setAbsensiForm({...absensiForm, sakit: e.target.value})}
-                              />
-                          </div>
-                          <div className="space-y-2">
-                              <Label className="text-xs">Izin</Label>
-                              <Input 
-                                  type="number" 
-                                  min={0}
-                                  value={absensiForm.izin}
-                                  onChange={e => setAbsensiForm({...absensiForm, izin: e.target.value})}
-                              />
-                          </div>
-                          <div className="space-y-2">
-                              <Label className="text-xs">Alpha</Label>
-                              <Input 
-                                  type="number" 
-                                  min={0}
-                                  value={absensiForm.alpha}
-                                  onChange={e => setAbsensiForm({...absensiForm, alpha: e.target.value})}
-                              />
-                          </div>
-                       </div>
-                       
-                       <div className="space-y-2 md:col-span-2">
-                          <Label>Catatan Wali Kelas</Label>
-                          <Textarea 
-                              placeholder="Catatan perkembangan siswa..." 
-                              rows={3}
-                              value={absensiForm.catatan_wali_kelas}
-                              onChange={e => setAbsensiForm({...absensiForm, catatan_wali_kelas: e.target.value})}
-                          />
-                       </div>
-                   </div>
-
-                   <div className="flex justify-end">
-                       <Button onClick={handleSaveAbsensi}>
-                          <Save className="w-4 h-4 mr-2" />
-                          Simpan Data
-                       </Button>
-                   </div>
-              </CardContent>
-           </Card>
-          )}
-      </div>
+       </div>
     </div>
   );
 };
